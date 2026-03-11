@@ -1,0 +1,129 @@
+services:
+  # ─────────────────────────────────────────
+  # SvelteKit Frontend
+  # ─────────────────────────────────────────
+  client:
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+      target: production
+    container_name: app_client
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - PUBLIC_API_URL=http://api:4000
+      - ORIGIN=${ORIGIN:-http://localhost:3000}
+    depends_on:
+      - api
+    networks:
+      - app_network
+
+  # ─────────────────────────────────────────
+  # NestJS Backend API
+  # ─────────────────────────────────────────
+  api:
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+      target: production
+    container_name: app_api
+    restart: unless-stopped
+    ports:
+      - "4000:4000"
+    environment:
+      - NODE_ENV=production
+      - PORT=4000
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      - REDIS_URL=redis://redis:6379
+      - JWT_SECRET=${JWT_SECRET}
+      - JWT_EXPIRES_IN=${JWT_EXPIRES_IN:-3600s}
+      - CORS_ORIGIN=${CORS_ORIGIN:-http://localhost:3000}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - app_network
+
+  # ─────────────────────────────────────────
+  # Drizzle Migrations (runs once, then exits)
+  # ─────────────────────────────────────────
+  migrate:
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+      target: production
+    container_name: app_migrate
+    command: ["npx", "drizzle-kit", "migrate"]
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - app_network
+    restart: "no"
+
+  # ─────────────────────────────────────────
+  # PostgreSQL Database
+  # ─────────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    container_name: app_postgres
+    restart: unless-stopped
+    ports:
+      - "5432:5432" # Remove in production if DB should not be externally accessible
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - app_network
+
+  # ─────────────────────────────────────────
+  # Redis (sessions, caching, queues)
+  # ─────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: app_redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379" # Remove in production if Redis should not be externally accessible
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD}
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - app_network
+
+# ─────────────────────────────────────────
+# Volumes
+# ─────────────────────────────────────────
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+
+# ─────────────────────────────────────────
+# Networks
+# ─────────────────────────────────────────
+networks:
+  app_network:
+    driver: bridge

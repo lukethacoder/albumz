@@ -15,7 +15,7 @@ export class AlbumResponseDto implements Album {
   genre: string | null
 
   @ApiPropertyOptional()
-  releaseDate: Date | null
+  releaseDate: string | null
 
   @ApiPropertyOptional({ example: 'A classic album from 1977.' })
   description: string | null

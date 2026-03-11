@@ -3,26 +3,27 @@ import {
   IsString,
   IsNotEmpty,
   IsOptional,
-  IsInt,
   IsUrl,
   MaxLength,
+  IsDateString,
 } from 'class-validator'
+import { Type } from 'class-transformer'
 
 export class CreateAlbumDto {
-  @ApiProperty({ example: 'Images and Words', description: 'Album title' })
+  @ApiProperty({ example: 'The New Flesh', description: 'Album title' })
   @IsString()
   @IsNotEmpty()
   @MaxLength(255)
   title: string
 
-  @ApiProperty({ example: 'Dream Theater', description: 'Artist or band name' })
+  @ApiProperty({ example: 'Sylosis', description: 'Artist or band name' })
   @IsString()
   @IsNotEmpty()
   @MaxLength(255)
   artist: string
 
   @ApiPropertyOptional({
-    example: 'Progressive Metal',
+    example: 'Groove Metal;Melodic Metalcore;Thrash Metal;Melodic Death Metal',
     description: 'Music genre, `;` separated for multiple genres',
   })
   @IsString()
@@ -31,12 +32,15 @@ export class CreateAlbumDto {
   genre?: string
 
   @ApiPropertyOptional({
-    example: '1992-06-29',
+    example: '2026-02-20',
     description: 'Release date of the album',
+    type: String,
+    format: 'date',
   })
-  @IsInt()
+  @IsDateString()
   @IsOptional()
-  releaseDate?: Date
+  @Type(() => Date)
+  releaseDate?: string
 
   @ApiPropertyOptional({
     description: 'Optional description or notes about the album',
@@ -45,7 +49,11 @@ export class CreateAlbumDto {
   @IsOptional()
   description?: string
 
-  @ApiPropertyOptional({ description: 'URL to the album cover image' })
+  @ApiPropertyOptional({
+    description: 'URL to the album cover image',
+    example:
+      'https://lastfm.freetls.fastly.net/i/u/770x0/60de1ccd3817a3c716ea0cc1e4494e12.jpg#60de1ccd3817a3c716ea0cc1e4494e12',
+  })
   @IsUrl()
   @IsOptional()
   @MaxLength(500)

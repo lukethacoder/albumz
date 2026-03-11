@@ -8,6 +8,13 @@
       "when": 1773236412024,
       "tag": "0000_noisy_bulldozer",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1773239834361,
+      "tag": "0001_blushing_living_tribunal",
+      "breakpoints": true
     }
   ]
 }

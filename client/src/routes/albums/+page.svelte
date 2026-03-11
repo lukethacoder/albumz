@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { invalidateAll } from '$app/navigation'
   import { albumControllerDelete } from '$lib/api/generated'
 
   // albums from server load
@@ -8,10 +9,9 @@
     const { error } = await albumControllerDelete({ path: { id } })
     if (!error) {
       // refresh or update local state
+      await invalidateAll()
     }
   }
-
-  console.log('data ', data)
 </script>
 
 <ul class="grid grid-cols-3 gap-2 p-2">

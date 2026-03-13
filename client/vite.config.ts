@@ -12,6 +12,16 @@ export default defineConfig({
     devtoolsJson(),
     paraglideVitePlugin({ project: './project.inlang', outdir: './src/lib/paraglide' }),
   ],
+  // allow docker to "HMR"
+  server: {
+    watch: {
+      usePolling: true,
+      interval: 1000,
+    },
+    hmr: {
+      host: 'localhost',
+    },
+  },
   test: {
     expect: { requireAssertions: true },
     projects: [

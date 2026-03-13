@@ -6,7 +6,7 @@ import { paraglideMiddleware } from '$lib/paraglide/server'
 import { client } from '$lib/api'
 
 client.setConfig({
-  baseUrl: import.meta.env.PUBLIC_API_URL ?? 'http://localhost:4000',
+  baseUrl: import.meta.env.PUBLIC_API_URL ?? 'http://localhost:3000',
 })
 
 const handleParaglide: Handle = ({ event, resolve }) =>

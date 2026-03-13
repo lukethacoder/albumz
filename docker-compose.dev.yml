@@ -1,0 +1,147 @@
+services:
+  # ─────────────────────────────────────────
+  # PostgreSQL Database
+  # ─────────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    container_name: albumz_dev_postgres
+    restart: unless-stopped
+    ports:
+      - '5432:5432'
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER:-admin}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-password}
+      - POSTGRES_DB=${POSTGRES_DB:-albumz}
+    volumes:
+      - postgres_dev_data:/var/lib/postgresql/data
+    healthcheck:
+      test:
+        [
+          'CMD-SHELL',
+          'pg_isready -U ${POSTGRES_USER:-admin} -d ${POSTGRES_DB:-albumz}',
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - dev_network
+
+  # ─────────────────────────────────────────
+  # Database Migrations (runs once on startup)
+  # ─────────────────────────────────────────
+  migrate:
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+      target: development
+    container_name: albumz_dev_migrate
+    command: ['pnpm', 'drizzle-kit', 'migrate']
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-admin}:${POSTGRES_PASSWORD:-password}@postgres:5432/${POSTGRES_DB:-albumz}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - dev_network
+    restart: 'no'
+
+  # ─────────────────────────────────────────
+  # Database Seeding (runs once after migrations)
+  # ─────────────────────────────────────────
+  seed:
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+      target: development
+    container_name: albumz_dev_seed
+    command: ['pnpm', 'db:seed']
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-admin}:${POSTGRES_PASSWORD:-password}@postgres:5432/${POSTGRES_DB:-albumz}
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    networks:
+      - dev_network
+    restart: 'no'
+
+  # ─────────────────────────────────────────
+  # NestJS Backend API (Development)
+  # ─────────────────────────────────────────
+  api:
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+      target: development
+    container_name: albumz_dev_api
+    restart: unless-stopped
+    ports:
+      - '3000:3000'
+    environment:
+      - NODE_ENV=development
+      - PORT=3000
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-admin}:${POSTGRES_PASSWORD:-password}@postgres:5432/${POSTGRES_DB:-albumz}
+      - CORS_ORIGIN=http://localhost:5173
+    volumes:
+      # Mount source code for hot reload
+      - ./api/src:/app/src:cached
+      - ./api/package.json:/app/package.json:cached
+      - ./api/tsconfig.json:/app/tsconfig.json:cached
+      - ./api/tsconfig.build.json:/app/tsconfig.build.json:cached
+      - ./api/nest-cli.json:/app/nest-cli.json:cached
+      # Exclude node_modules to use container's version
+      - /app/node_modules
+    depends_on:
+      postgres:
+        condition: service_healthy
+      seed:
+        condition: service_completed_successfully
+    networks:
+      - dev_network
+
+  # ─────────────────────────────────────────
+  # SvelteKit Frontend (Development)
+  # ─────────────────────────────────────────
+  client:
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+      target: development
+    container_name: albumz_dev_client
+    restart: unless-stopped
+    ports:
+      - '5173:5173'
+    environment:
+      - NODE_ENV=development
+      - PUBLIC_API_URL=http://localhost:3000
+      - API_URL=http://api:3000
+    volumes:
+      # Mount source code for hot reload
+      - ./client/src:/app/src:cached
+      - ./client/static:/app/static:cached
+      - ./client/package.json:/app/package.json:cached
+      - ./client/svelte.config.js:/app/svelte.config.js:cached
+      - ./client/vite.config.ts:/app/vite.config.ts:cached
+      - ./client/tsconfig.json:/app/tsconfig.json:cached
+      # Note: .env file is NOT mounted - using docker-compose environment variables instead
+      # Exclude node_modules and .svelte-kit to use container's version
+      - /app/node_modules
+      - /app/.svelte-kit
+    depends_on:
+      - api
+    networks:
+      - dev_network
+
+# ─────────────────────────────────────────
+# Volumes
+# ─────────────────────────────────────────
+volumes:
+  postgres_dev_data:
+    driver: local
+
+# ─────────────────────────────────────────
+# Networks
+# ─────────────────────────────────────────
+networks:
+  dev_network:
+    driver: bridge

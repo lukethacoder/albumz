@@ -10,10 +10,10 @@ services:
     container_name: app_client
     restart: unless-stopped
     ports:
-      - "3000:3000"
+      - '3000:3000'
     environment:
       - NODE_ENV=production
-      - PUBLIC_API_URL=http://api:4000
+      - PUBLIC_API_URL=http://api:3000
       - ORIGIN=${ORIGIN:-http://localhost:3000}
     depends_on:
       - api
@@ -31,10 +31,10 @@ services:
     container_name: app_api
     restart: unless-stopped
     ports:
-      - "4000:4000"
+      - '3000:3000'
     environment:
       - NODE_ENV=production
-      - PORT=4000
+      - PORT=3000
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
       - REDIS_URL=redis://redis:6379
       - JWT_SECRET=${JWT_SECRET}
@@ -57,7 +57,7 @@ services:
       dockerfile: Dockerfile
       target: production
     container_name: app_migrate
-    command: ["npx", "drizzle-kit", "migrate"]
+    command: ['npx', 'drizzle-kit', 'migrate']
     environment:
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
     depends_on:
@@ -65,7 +65,7 @@ services:
         condition: service_healthy
     networks:
       - app_network
-    restart: "no"
+    restart: 'no'
 
   # ─────────────────────────────────────────
   # PostgreSQL Database
@@ -75,7 +75,7 @@ services:
     container_name: app_postgres
     restart: unless-stopped
     ports:
-      - "5432:5432" # Remove in production if DB should not be externally accessible
+      - '5432:5432' # Remove in production if DB should not be externally accessible
     environment:
       - POSTGRES_USER=${POSTGRES_USER}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
@@ -83,7 +83,7 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}']
       interval: 10s
       timeout: 5s
       retries: 5
@@ -99,12 +99,12 @@ services:
     container_name: app_redis
     restart: unless-stopped
     ports:
-      - "6379:6379" # Remove in production if Redis should not be externally accessible
+      - '6379:6379' # Remove in production if Redis should not be externally accessible
     volumes:
       - redis_data:/data
     command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD}
     healthcheck:
-      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      test: ['CMD', 'redis-cli', '-a', '${REDIS_PASSWORD}', 'ping']
       interval: 10s
       timeout: 5s
       retries: 5

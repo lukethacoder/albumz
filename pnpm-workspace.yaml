@@ -1,0 +1,9 @@
+packages:
+  - api
+  - client
+
+onlyBuiltDependencies:
+  - '@nestjs/core'
+  - '@scarf/scarf'
+  - esbuild
+  - unrs-resolver

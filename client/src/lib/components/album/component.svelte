@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { resolve } from '$app/paths'
   import { cn } from '$lib/utils'
   import type { RootProps } from './types'
 
@@ -18,7 +19,7 @@
     onclick={handleSelectAlbum}
   ></button> -->
   <a
-    href={`/albums/${albumId}`}
+    href={resolve(`/albums/${albumId}`)}
     aria-label="Select album"
     class="inset absolute h-full w-full cursor-pointer rounded-lg focus:outline-2 focus:outline-offset-2 focus:outline-emerald-500"
     onclick={handleSelectAlbum}

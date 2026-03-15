@@ -4,6 +4,7 @@
   import './layout.css'
   import favicon from '$lib/assets/favicon.svg'
   import { Button } from '$lib/components'
+  import { Plus } from '@lucide/svelte'
 
   let { children } = $props()
 
@@ -16,7 +17,12 @@
 
 <nav class="flex justify-between p-3">
   <a href="/" class="hover:underline dark:text-emerald-400">albumz</a>
-  <Button.Root onclick={handleAddAlbum}>➕ add album</Button.Root>
+  <Button.Root variant="outline" onclick={handleAddAlbum}>
+    add album
+    {#snippet iconLeft()}
+      <Plus />
+    {/snippet}
+  </Button.Root>
 </nav>
 
 {@render children()}

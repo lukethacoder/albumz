@@ -48,6 +48,9 @@ importers:
       '@types/node':
         specifier: ^22
         version: 22.19.15
+      '@varlock/vite-integration':
+        specifier: ^0.2.5
+        version: 0.2.5(varlock@0.5.0)(vite@7.3.1(@types/node@22.19.15)(jiti@2.6.1)(lightningcss@1.31.1))
       '@vitest/browser-playwright':
         specifier: ^4.0.18
         version: 4.0.18(playwright@1.58.2)(vite@7.3.1(@types/node@22.19.15)(jiti@2.6.1)(lightningcss@1.31.1))(vitest@4.0.18)
@@ -789,6 +792,13 @@ packages:
   '@typescript-eslint/visitor-keys@8.57.0':
     resolution: {integrity: sha512-zm6xx8UT/Xy2oSr2ZXD0pZo7Jx2XsCoID2IUh9YSTFRu7z+WdwYTRk6LhUftm1crwqbuoF6I8zAFeCMw0YjwDg==}
     engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
+
+  '@varlock/vite-integration@0.2.5':
+    resolution: {integrity: sha512-g7B9/duaIYNloaveaH3ytidrRDda2J7fWEidAOLItd0Hhp5uGlwnx2sL0OPPr5mvnZCa1/2z7JPscXAYI48+gg==}
+    engines: {node: '>=22'}
+    peerDependencies:
+      varlock: ^0.5.0
+      vite: '>=5'
 
   '@vitest/browser-playwright@4.0.18':
     resolution: {integrity: sha512-gfajTHVCiwpxRj1qh0Sh/5bbGLG4F/ZH/V9xvFVoFddpITfMta9YGow0W6ZpTTORv2vdJuz9TnrNSmjKvpOf4g==}
@@ -2561,6 +2571,11 @@ snapshots:
     dependencies:
       '@typescript-eslint/types': 8.57.0
       eslint-visitor-keys: 5.0.1
+
+  '@varlock/vite-integration@0.2.5(varlock@0.5.0)(vite@7.3.1(@types/node@22.19.15)(jiti@2.6.1)(lightningcss@1.31.1))':
+    dependencies:
+      varlock: 0.5.0
+      vite: 7.3.1(@types/node@22.19.15)(jiti@2.6.1)(lightningcss@1.31.1)
 
   '@vitest/browser-playwright@4.0.18(playwright@1.58.2)(vite@7.3.1(@types/node@22.19.15)(jiti@2.6.1)(lightningcss@1.31.1))(vitest@4.0.18)':
     dependencies:

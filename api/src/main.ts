@@ -1,6 +1,8 @@
+// IMPORTANT: Initialize varlock FIRST before any other imports
+import { ENV } from './env'
+
 import { NestFactory } from '@nestjs/core'
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger'
-import { ENV } from 'varlock/env'
 import { AppModule } from './app.module'
 
 async function bootstrap() {
@@ -20,6 +22,7 @@ async function bootstrap() {
     .setTitle('Albumz')
     .setDescription('The albumz API')
     .setVersion('1.0')
+    .addBearerAuth()
     // .addTag('albumz')
     .build()
   const documentFactory = () => SwaggerModule.createDocument(app, config)

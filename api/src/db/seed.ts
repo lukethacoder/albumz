@@ -2,17 +2,13 @@ import { drizzle } from 'drizzle-orm/node-postgres'
 import { Pool } from 'pg'
 import { count } from 'drizzle-orm'
 import * as schema from './schema'
-import { ENV } from 'varlock/env'
+import { NodePgDatabase } from 'drizzle-orm/node-postgres'
 
-async function seed() {
-  const pool = new Pool({
-    connectionString: ENV.DATABASE_URL,
-  })
+type DbType = NodePgDatabase<typeof schema> & {
+  $client: Pool
+}
 
-  const db = drizzle(pool, { schema })
-
-  console.log('🌱 Checking database...')
-
+async function seedAlbums(pool: Pool, db: DbType) {
   // Check if database already has data
   const [result] = await db.select({ count: count() }).from(schema.albums)
   const albumCount = Number(result.count)
@@ -162,6 +158,21 @@ async function seed() {
     .returning()
 
   console.log(`✅ Seeded ${albums.length} albums`)
+}
+
+async function seed() {
+  const pool = new Pool({
+    // varlock initialised here
+    connectionString: process.env.DATABASE_URL,
+  })
+
+  const db = drizzle(pool, { schema })
+
+  console.log(
+    '🌱 Checking database...seeding with initial data if not provided',
+  )
+
+  await seedAlbums(pool, db)
 
   await pool.end()
   process.exit(0)

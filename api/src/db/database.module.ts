@@ -1,7 +1,7 @@
 import { Global, Module, OnApplicationShutdown } from '@nestjs/common'
-import { ConfigService } from '@nestjs/config'
 import { drizzle } from 'drizzle-orm/node-postgres'
 import { Pool } from 'pg'
+import { ENV } from 'varlock/env'
 
 import { DRIZZLE_CLIENT, PG_POOL } from './database.constants'
 import * as schema from './schema/index'
@@ -12,10 +12,9 @@ import { ModuleRef } from '@nestjs/core'
   providers: [
     {
       provide: PG_POOL,
-      inject: [ConfigService],
-      useFactory: (config: ConfigService) =>
+      useFactory: () =>
         new Pool({
-          connectionString: config.getOrThrow<string>('DATABASE_URL'),
+          connectionString: ENV.DATABASE_URL,
           max: 10,
           idleTimeoutMillis: 30000,
           connectionTimeoutMillis: 2000,

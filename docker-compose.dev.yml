@@ -82,6 +82,7 @@ services:
       - PORT=3000
       - DATABASE_URL=postgresql://${POSTGRES_USER:-admin}:${POSTGRES_PASSWORD:-password}@postgres:5432/${POSTGRES_DB:-albumz}
       - CORS_ORIGIN=http://localhost:5173
+      - JWT_SECRET=${JWT_SECRET:-your-secret-key-change-this-in-production}
     volumes:
       # Mount source code for hot reload
       - ./api/src:/app/src:cached
@@ -89,6 +90,8 @@ services:
       - ./api/tsconfig.json:/app/tsconfig.json:cached
       - ./api/tsconfig.build.json:/app/tsconfig.build.json:cached
       - ./api/nest-cli.json:/app/nest-cli.json:cached
+      - ./api/.env:/app/.env:cached
+      - ./api/.env.schema:/app/.env.schema:cached
       # Exclude node_modules to use container's version
       - /app/node_modules
     depends_on:

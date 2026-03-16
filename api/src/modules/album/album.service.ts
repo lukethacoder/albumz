@@ -9,12 +9,12 @@ import { UpdateAlbumDto } from './dto/update-album.dto'
 export class AlbumService {
   constructor(private readonly albumRepository: AlbumRepository) {}
 
-  async findAll(): Promise<Album[]> {
-    return this.albumRepository.findAll()
+  async findAll(userId: string): Promise<Album[]> {
+    return this.albumRepository.findAll(userId)
   }
 
-  async findById(id: string): Promise<Album> {
-    const album = await this.albumRepository.findById(id)
+  async findById(id: string, userId: string): Promise<Album> {
+    const album = await this.albumRepository.findById(id, userId)
 
     if (!album) {
       throw new NotFoundException(`Album with id "${id}" not found`)
@@ -23,19 +23,19 @@ export class AlbumService {
     return album
   }
 
-  async findByArtist(artist: string): Promise<Album[]> {
-    return this.albumRepository.findByArtist(artist)
+  async findByArtist(artist: string, userId: string): Promise<Album[]> {
+    return this.albumRepository.findByArtist(artist, userId)
   }
 
-  async create(dto: CreateAlbumDto): Promise<Album> {
-    return this.albumRepository.create(dto)
+  async create(dto: CreateAlbumDto, userId: string): Promise<Album> {
+    return this.albumRepository.create({ ...dto, userId })
   }
 
-  async update(id: string, dto: UpdateAlbumDto): Promise<Album> {
+  async update(id: string, userId: string, dto: UpdateAlbumDto): Promise<Album> {
     // Confirm the album exists before attempting update
-    await this.findById(id)
+    await this.findById(id, userId)
 
-    const updated = await this.albumRepository.update(id, dto)
+    const updated = await this.albumRepository.update(id, userId, dto)
 
     if (!updated) {
       throw new NotFoundException(`Album with id "${id}" not found`)
@@ -44,11 +44,11 @@ export class AlbumService {
     return updated
   }
 
-  async delete(id: string): Promise<void> {
+  async delete(id: string, userId: string): Promise<void> {
     // Confirm the album exists before attempting delete
-    await this.findById(id)
+    await this.findById(id, userId)
 
-    const deleted = await this.albumRepository.delete(id)
+    const deleted = await this.albumRepository.delete(id, userId)
 
     if (!deleted) {
       throw new NotFoundException(`Album with id "${id}" not found`)

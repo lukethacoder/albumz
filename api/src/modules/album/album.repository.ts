@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common'
-import { eq } from 'drizzle-orm'
+import { eq, and } from 'drizzle-orm'
 import { NodePgDatabase } from 'drizzle-orm/node-postgres'
 
 import { DRIZZLE_CLIENT } from 'src/db/database.constants'
@@ -14,25 +14,29 @@ export class AlbumRepository {
     private readonly db: NodePgDatabase<typeof schema>,
   ) {}
 
-  async findAll(): Promise<Album[]> {
-    return this.db.select().from(albums).orderBy(albums.createdAt)
+  async findAll(userId: string): Promise<Album[]> {
+    return this.db
+      .select()
+      .from(albums)
+      .where(eq(albums.userId, userId))
+      .orderBy(albums.createdAt)
   }
 
-  async findById(id: string): Promise<Album | undefined> {
+  async findById(id: string, userId: string): Promise<Album | undefined> {
     const [album] = await this.db
       .select()
       .from(albums)
-      .where(eq(albums.id, id))
+      .where(and(eq(albums.id, id), eq(albums.userId, userId)))
       .limit(1)
 
     return album
   }
 
-  async findByArtist(artist: string): Promise<Album[]> {
+  async findByArtist(artist: string, userId: string): Promise<Album[]> {
     return this.db
       .select()
       .from(albums)
-      .where(eq(albums.artist, artist))
+      .where(and(eq(albums.artist, artist), eq(albums.userId, userId)))
       .orderBy(albums.releaseDate)
   }
 
@@ -42,20 +46,24 @@ export class AlbumRepository {
     return album
   }
 
-  async update(id: string, data: UpdateAlbumDto): Promise<Album | undefined> {
+  async update(
+    id: string,
+    userId: string,
+    data: UpdateAlbumDto,
+  ): Promise<Album | undefined> {
     const [album] = await this.db
       .update(albums)
       .set({ ...data, updatedAt: new Date() })
-      .where(eq(albums.id, id))
+      .where(and(eq(albums.id, id), eq(albums.userId, userId)))
       .returning()
 
     return album
   }
 
-  async delete(id: string): Promise<boolean> {
+  async delete(id: string, userId: string): Promise<boolean> {
     const result = await this.db
       .delete(albums)
-      .where(eq(albums.id, id))
+      .where(and(eq(albums.id, id), eq(albums.userId, userId)))
       .returning({ id: albums.id })
 
     return result.length > 0

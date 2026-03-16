@@ -41,6 +41,8 @@ function createAuthStore() {
 
 			if (browser) {
 				localStorage.setItem(TOKEN_KEY, authData.accessToken)
+				// Set cookie for server-side access
+				document.cookie = `access_token=${authData.accessToken}; path=/; max-age=${authData.expiresIn}; SameSite=Lax`
 			}
 		},
 
@@ -51,6 +53,8 @@ function createAuthStore() {
 
 			if (browser) {
 				localStorage.removeItem(TOKEN_KEY)
+				// Clear the cookie
+				document.cookie = 'access_token=; path=/; max-age=0'
 			}
 		},
 

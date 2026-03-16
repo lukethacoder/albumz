@@ -53,6 +53,8 @@
     "vitest-browser-svelte": "^2.0.2"
   },
   "dependencies": {
+    "@fontsource-variable/funnel-display": "^5.2.8",
+    "@fontsource-variable/geist-mono": "^5.2.7",
     "@lucide/svelte": "^0.577.0",
     "bits-ui": "^2.16.3"
   }

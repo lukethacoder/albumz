@@ -29,7 +29,9 @@
 <svelte:head><link rel="icon" href={favicon} /></svelte:head>
 
 <nav class="flex items-center justify-between p-3">
-  <a href="/" class="hover:underline dark:text-emerald-400">albumz</a>
+  <a href="/" class="font-funnel text-xl font-bold uppercase hover:underline dark:text-emerald-400"
+    >albumz</a
+  >
 
   <div class="flex items-center gap-2">
     {#if authStore.isAuthenticated}

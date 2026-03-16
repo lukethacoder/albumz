@@ -17,7 +17,7 @@
 
 <section class="w-full">
   <ul
-    class="mx-auto grid w-full grid-cols-[repeat(auto-fill,minmax(min(200px,100%),1fr))] gap-2 p-2"
+    class="mx-auto grid w-full grid-cols-[repeat(auto-fill,minmax(min(240px,100%),1fr))] gap-2 p-2"
   >
     {#each data.albums as album (album.id)}
       <li class="flex h-full w-full">

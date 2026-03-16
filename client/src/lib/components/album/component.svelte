@@ -28,7 +28,7 @@
     <span class="overflow-hidden rounded-lg">
       <img src={coverUrl} alt="album artwork" class="w-full max-w-full" />
     </span>
-    <p class="mt-2 line-clamp-2 dark:text-white">{title}</p>
+    <p class="mt-2 line-clamp-2 font-semibold uppercase dark:text-white">{title}</p>
     <p class="mt-0 line-clamp-1 dark:text-neutral-500">{releaseDateFormatted} • {artist}</p>
     <!-- <button onclick={() => onDeleteAlbum(albumId)}>🚮</button> --></span
   >

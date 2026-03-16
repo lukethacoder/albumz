@@ -10,3 +10,8 @@ Thumbs.db
 .env.*
 !.env.example
 !.env.test
+
+!.env.schema
+
+# Exclude generated env types file
+env.d.ts

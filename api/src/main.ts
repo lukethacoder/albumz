@@ -1,19 +1,16 @@
 import { NestFactory } from '@nestjs/core'
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger'
+import { ENV } from 'varlock/env'
 import { AppModule } from './app.module'
-import { ConfigService } from '@nestjs/config'
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule)
 
-  const configService = app.get(ConfigService)
-
-  const corsOrigin = configService.getOrThrow<string>('CORS_ORIGIN')
-  console.log('🔒 CORS Origin:', corsOrigin)
+  console.log('🔒 CORS Origin:', ENV.CORS_ORIGIN)
 
   // allows svelte to call client-side
   app.enableCors({
-    origin: corsOrigin,
+    origin: ENV.CORS_ORIGIN,
     methods: ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
     credentials: true, // required if you're sending cookies or auth headers
@@ -28,6 +25,6 @@ async function bootstrap() {
   const documentFactory = () => SwaggerModule.createDocument(app, config)
   SwaggerModule.setup('api/swagger', app, documentFactory)
 
-  await app.listen(process.env.PORT ?? 3000)
+  await app.listen(ENV.PORT ? String(ENV.PORT) : '3000')
 }
 bootstrap()

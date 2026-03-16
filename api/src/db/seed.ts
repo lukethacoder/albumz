@@ -2,10 +2,11 @@ import { drizzle } from 'drizzle-orm/node-postgres'
 import { Pool } from 'pg'
 import { count } from 'drizzle-orm'
 import * as schema from './schema'
+import { ENV } from 'varlock/env'
 
 async function seed() {
   const pool = new Pool({
-    connectionString: process.env.DATABASE_URL,
+    connectionString: ENV.DATABASE_URL,
   })
 
   const db = drizzle(pool, { schema })

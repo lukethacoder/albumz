@@ -1,11 +1,9 @@
-import { API_URL } from '$env/static/private'
+import { ENV } from 'varlock/env'
 import { client } from './generated/client.gen'
 
-// Server-side only: Configure API client with internal Docker service name
-console.log('🔧 API Client Config (Server):', { API_URL })
-
+// Server-side only: Configure API client with API URL
 client.setConfig({
-  baseUrl: API_URL,
+  baseUrl: ENV.API_URL,
 })
 
 export { client }

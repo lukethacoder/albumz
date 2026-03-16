@@ -13,13 +13,8 @@ export class RegisterDto {
   @MinLength(8)
   password: string
 
-  @ApiProperty({ example: 'John', required: false })
+  @ApiProperty({ example: 'john_doe', required: false })
   @IsString()
   @IsOptional()
-  firstName?: string
-
-  @ApiProperty({ example: 'Doe', required: false })
-  @IsString()
-  @IsOptional()
-  lastName?: string
+  username?: string
 }

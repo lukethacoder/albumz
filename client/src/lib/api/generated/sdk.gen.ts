@@ -19,6 +19,15 @@ import type {
   AlbumControllerUpdateResponses,
   AppControllerGetHelloData,
   AppControllerGetHelloResponses,
+  AuthControllerGetProfileData,
+  AuthControllerGetProfileErrors,
+  AuthControllerGetProfileResponses,
+  AuthControllerLoginData,
+  AuthControllerLoginErrors,
+  AuthControllerLoginResponses,
+  AuthControllerRegisterData,
+  AuthControllerRegisterErrors,
+  AuthControllerRegisterResponses,
 } from './types.gen'
 
 export type Options<
@@ -53,6 +62,7 @@ export const albumControllerFindAll = <ThrowOnError extends boolean = false>(
   options?: Options<AlbumControllerFindAllData, ThrowOnError>,
 ) =>
   (options?.client ?? client).get<AlbumControllerFindAllResponses, unknown, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
     url: '/albums',
     ...options,
   })
@@ -68,6 +78,7 @@ export const albumControllerCreate = <ThrowOnError extends boolean = false>(
     AlbumControllerCreateErrors,
     ThrowOnError
   >({
+    security: [{ scheme: 'bearer', type: 'http' }],
     url: '/albums',
     ...options,
     headers: {
@@ -86,7 +97,11 @@ export const albumControllerDelete = <ThrowOnError extends boolean = false>(
     AlbumControllerDeleteResponses,
     AlbumControllerDeleteErrors,
     ThrowOnError
-  >({ url: '/albums/{id}', ...options })
+  >({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/albums/{id}',
+    ...options,
+  })
 
 /**
  * Get a single album by ID
@@ -98,7 +113,11 @@ export const albumControllerFindById = <ThrowOnError extends boolean = false>(
     AlbumControllerFindByIdResponses,
     AlbumControllerFindByIdErrors,
     ThrowOnError
-  >({ url: '/albums/{id}', ...options })
+  >({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/albums/{id}',
+    ...options,
+  })
 
 /**
  * Update an album (partial update)
@@ -111,10 +130,65 @@ export const albumControllerUpdate = <ThrowOnError extends boolean = false>(
     AlbumControllerUpdateErrors,
     ThrowOnError
   >({
+    security: [{ scheme: 'bearer', type: 'http' }],
     url: '/albums/{id}',
     ...options,
     headers: {
       'Content-Type': 'application/json',
       ...options.headers,
     },
+  })
+
+/**
+ * Register a new user
+ */
+export const authControllerRegister = <ThrowOnError extends boolean = false>(
+  options: Options<AuthControllerRegisterData, ThrowOnError>,
+) =>
+  (options.client ?? client).post<
+    AuthControllerRegisterResponses,
+    AuthControllerRegisterErrors,
+    ThrowOnError
+  >({
+    url: '/auth/register',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  })
+
+/**
+ * Login with email and password
+ */
+export const authControllerLogin = <ThrowOnError extends boolean = false>(
+  options: Options<AuthControllerLoginData, ThrowOnError>,
+) =>
+  (options.client ?? client).post<
+    AuthControllerLoginResponses,
+    AuthControllerLoginErrors,
+    ThrowOnError
+  >({
+    url: '/auth/login',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  })
+
+/**
+ * Get current user profile
+ */
+export const authControllerGetProfile = <ThrowOnError extends boolean = false>(
+  options?: Options<AuthControllerGetProfileData, ThrowOnError>,
+) =>
+  (options?.client ?? client).get<
+    AuthControllerGetProfileResponses,
+    AuthControllerGetProfileErrors,
+    ThrowOnError
+  >({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/auth/profile',
+    ...options,
   })

@@ -28,3 +28,9 @@ pnpm dev:logs # or pnpm prod:logs
 # Rebuild specific service
 docker compose -f docker-compose.dev.yml up --build api
 ```
+
+## Database Migrations
+
+1. Add/Edit the respective `./api/src/db/schema/` files
+2. run `npx drizzle-kit generate` from the `./api` folder
+3. restart the top level `pnpm dev` command (run `pnpm dev:down` before restarting)

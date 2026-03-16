@@ -78,6 +78,26 @@ export type UpdateAlbumDto = {
   coverUrl?: string
 }
 
+export type RegisterDto = {
+  email: string
+  password: string
+  username?: string
+}
+
+export type AuthResponseDto = {
+  accessToken: string
+  tokenType: string
+  expiresIn: number
+  user: {
+    [key: string]: unknown
+  }
+}
+
+export type LoginDto = {
+  email: string
+  password: string
+}
+
 export type AppControllerGetHelloData = {
   body?: never
   path?: never
@@ -209,3 +229,72 @@ export type AlbumControllerUpdateResponses = {
 
 export type AlbumControllerUpdateResponse =
   AlbumControllerUpdateResponses[keyof AlbumControllerUpdateResponses]
+
+export type AuthControllerRegisterData = {
+  body: RegisterDto
+  path?: never
+  query?: never
+  url: '/auth/register'
+}
+
+export type AuthControllerRegisterErrors = {
+  /**
+   * Email already registered
+   */
+  409: unknown
+}
+
+export type AuthControllerRegisterResponses = {
+  /**
+   * User registered successfully
+   */
+  201: AuthResponseDto
+}
+
+export type AuthControllerRegisterResponse =
+  AuthControllerRegisterResponses[keyof AuthControllerRegisterResponses]
+
+export type AuthControllerLoginData = {
+  body: LoginDto
+  path?: never
+  query?: never
+  url: '/auth/login'
+}
+
+export type AuthControllerLoginErrors = {
+  /**
+   * Invalid credentials
+   */
+  401: unknown
+}
+
+export type AuthControllerLoginResponses = {
+  /**
+   * Login successful
+   */
+  200: AuthResponseDto
+}
+
+export type AuthControllerLoginResponse =
+  AuthControllerLoginResponses[keyof AuthControllerLoginResponses]
+
+export type AuthControllerGetProfileData = {
+  body?: never
+  path?: never
+  query?: never
+  url: '/auth/profile'
+}
+
+export type AuthControllerGetProfileErrors = {
+  /**
+   * Unauthorized
+   */
+  401: unknown
+}
+
+export type AuthControllerGetProfileResponses = {
+  /**
+   * Returns current user profile
+   */
+  200: unknown
+}

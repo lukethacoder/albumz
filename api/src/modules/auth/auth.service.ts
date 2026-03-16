@@ -20,7 +20,9 @@ export class AuthService {
 
   async register(registerDto: RegisterDto): Promise<AuthResponseDto> {
     // Check if user already exists
-    const existingUser = await this.userRepository.findByEmail(registerDto.email)
+    const existingUser = await this.userRepository.findByEmail(
+      registerDto.email,
+    )
     if (existingUser) {
       throw new ConflictException('Email already registered')
     }
@@ -32,8 +34,7 @@ export class AuthService {
     const user = await this.userRepository.create({
       email: registerDto.email,
       password: hashedPassword,
-      firstName: registerDto.firstName,
-      lastName: registerDto.lastName,
+      username: registerDto.username,
     })
 
     // Generate JWT token
@@ -46,7 +47,10 @@ export class AuthService {
       return null
     }
 
-    const isPasswordValid = await this.passwordService.compare(password, user.password)
+    const isPasswordValid = await this.passwordService.compare(
+      password,
+      user.password,
+    )
     if (!isPasswordValid) {
       return null
     }
@@ -81,8 +85,7 @@ export class AuthService {
       user: {
         id: user.id,
         email: user.email,
-        firstName: user.firstName ?? undefined,
-        lastName: user.lastName ?? undefined,
+        username: user.username ?? undefined,
       },
     }
   }

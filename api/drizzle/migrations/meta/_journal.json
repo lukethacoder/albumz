@@ -22,6 +22,13 @@
       "when": 1773665953344,
       "tag": "0002_careful_gunslinger",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1773669819120,
+      "tag": "0003_awesome_nighthawk",
+      "breakpoints": true
     }
   ]
 }

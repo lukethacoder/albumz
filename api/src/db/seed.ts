@@ -143,7 +143,7 @@ async function seedAlbums(db: DbType, userId: string) {
         {
           title: 'City of Evil',
           artist: 'Avenged Sevenfold',
-          releaseDate: '20025-06-05',
+          releaseDate: '2025-06-05',
           genre: 'Metalcore;Hard Rock;Heavy Metal',
           coverUrl:
             'https://lastfm.freetls.fastly.net/i/u/770x0/50f59fc2dcff4345c3d492e1a71f634f.jpg#50f59fc2dcff4345c3d492e1a71f634f',

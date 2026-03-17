@@ -15,6 +15,10 @@
   }
 </script>
 
+<svelte:head>
+  <title>Home - Albumz</title>
+</svelte:head>
+
 <section class="w-full">
   <ul
     class="mx-auto grid w-full grid-cols-[repeat(auto-fill,minmax(min(240px,100%),1fr))] gap-2 p-2"

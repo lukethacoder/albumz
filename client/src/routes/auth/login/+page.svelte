@@ -1,11 +1,14 @@
 <script lang="ts">
   import { goto } from '$app/navigation'
+  import { resolve } from '$app/paths'
   import { authControllerLogin } from '$lib/api'
   import { Button } from '$lib/components'
+  import { m } from '$lib/paraglide/messages'
   import { authStore } from '$lib/stores/auth.svelte'
+  import { ENV } from 'varlock/env'
 
-  let email = $state('')
-  let password = $state('')
+  let email = $state(ENV.VARLOCK_ENV === 'development' ? 'admin@albumz.local' : '')
+  let password = $state(ENV.VARLOCK_ENV === 'development' ? 'password' : '')
   let error = $state<string | null>(null)
   let loading = $state(false)
 
@@ -25,7 +28,7 @@
       }
 
       authStore.setAuth(data)
-      goto('/')
+      goto(resolve('/'))
     } catch (err) {
       error = 'An error occurred. Please try again.'
       console.error('Login error:', err)
@@ -36,19 +39,13 @@
 </script>
 
 <svelte:head>
-  <title>Login - Albumz</title>
+  <title>{m.sign_in()} - Albumz</title>
 </svelte:head>
 
 <div class="mx-auto flex min-h-screen max-w-md items-center justify-center px-4">
   <div class="w-full space-y-8">
     <div>
-      <h1 class="text-3xl font-bold">Sign in to your account</h1>
-      <p class="mt-2 text-sm text-gray-600">
-        Or
-        <a href="/auth/register" class="font-medium text-emerald-600 hover:text-emerald-500">
-          create a new account
-        </a>
-      </p>
+      <h1 class="text-7xl font-bold capitalize">{m.sign_in_to_your_account()}</h1>
     </div>
 
     <form onsubmit={handleSubmit} class="mt-8 space-y-6">
@@ -61,7 +58,7 @@
       <div class="space-y-4">
         <div>
           <label for="email" class="block text-sm font-medium text-gray-300 uppercase">
-            Email address
+            {m.email()}
           </label>
           <input
             id="email"
@@ -76,7 +73,7 @@
 
         <div>
           <label for="password" class="block text-sm font-medium text-gray-300 uppercase">
-            Password
+            {m.password()}
           </label>
           <input
             id="password"
@@ -94,11 +91,11 @@
         <Button.Root
           type="submit"
           disabled={loading}
-          class="flex w-full"
+          class="flex w-full capitalize"
           variant="outline"
           size="lg"
         >
-          {loading ? 'Signing in...' : 'Sign in'}
+          {loading ? m.signing_in() : m.sign_in()}
         </Button.Root>
       </div>
     </form>

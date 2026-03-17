@@ -1,31 +1,36 @@
 @layer theme, base, components, utilities;
 
-@import '@fontsource-variable/funnel-display';
-@import '@fontsource-variable/geist-mono';
-
-body {
-  font-family: 'Geist Mono', sans-serif;
-  margin: 0;
-  line-height: 1.6;
-}
-
-h1,
-h2,
-h3,
-h4,
-h5,
-h6 {
-  font-family: 'Funnel Display', sans-serif;
-  font-weight: 800;
-}
-
-@theme {
-  --font-geist: 'Geist Mono', sans-serif;
-  --font-funnel: 'Funnel Display', sans-serif;
-}
-
 @import 'tailwindcss/theme.css' layer(theme);
 @import 'tailwindcss/preflight.css' layer(base);
 @import 'tailwindcss/utilities.css' layer(utilities);
 @plugin '@tailwindcss/forms';
 @plugin '@tailwindcss/typography';
+
+@import '@fontsource-variable/funnel-display';
+@import '@fontsource-variable/geist-mono';
+
+@theme {
+  --font-geist: 'Geist Mono Variable', monospace;
+  --font-funnel: 'Funnel Display Variable', sans-serif;
+}
+
+@layer base {
+  body {
+    font-family: var(--font-geist);
+    margin: 0;
+    line-height: 1.6;
+
+    background:
+      linear-gradient(0deg, rgba(255, 255, 255, 0.02), rgba(255, 255, 255, 0.02)), #0d0d0d;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: var(--font-funnel);
+    font-weight: var(--font-weight-extrabold);
+  }
+}

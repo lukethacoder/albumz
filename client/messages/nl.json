@@ -1,4 +1,22 @@
 {
-	"$schema": "https://inlang.com/schema/inlang-message-format",
-	"hello_world": "Hallo {name} uit {country}!"
+  "$schema": "https://inlang.com/schema/inlang-message-format",
+  "hello_world": "Hallo {name} uit {country}!",
+  "sign_in": "inloggen",
+  "sign_in_to_your_account": "log in op je account",
+  "signing_in": "aanmelden",
+  "logout": "uitloggen",
+  "password": "wachtwoord",
+  "email": "email",
+  "add_album": "voeg album toe",
+  "added": "toegevoegd",
+  "mark_complete": "merk voltooid",
+  "mark_incomplete": "merk onvolledig",
+  "remove": "verwijderen",
+  "year": "jaar",
+  "month": "maand",
+  "day": "dag",
+  "hour": "uur",
+  "minute": "minuut",
+  "second": "tweede",
+  "release_date": "releasedatum"
 }

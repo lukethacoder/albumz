@@ -102,7 +102,7 @@
   {...rest}
   class={cn(
     // ── Base — preserves your exact structural choices ─────────────────────────
-    'inline-flex cursor-pointer justify-center overflow-hidden rounded-full font-medium transition',
+    'inline-flex cursor-pointer justify-center overflow-hidden rounded-md font-geist transition',
     // ── Focus ring ────────────────────────────────────────────────────────────
     'focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none',
     'focus-visible:ring-offset-white dark:focus-visible:ring-offset-zinc-900',

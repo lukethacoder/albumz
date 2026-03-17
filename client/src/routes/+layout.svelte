@@ -1,6 +1,6 @@
 <script lang="ts">
   import { page } from '$app/state'
-  import { locales, localizeHref } from '$lib/paraglide/runtime'
+  import { getLocale, locales, localizeHref, setLocale } from '$lib/paraglide/runtime'
   import { onMount } from 'svelte'
   import { goto } from '$app/navigation'
   import './layout.css'
@@ -8,6 +8,8 @@
   import { Button } from '$lib/components'
   import { Plus, LogOut, User } from '@lucide/svelte'
   import { authStore } from '$lib/stores/auth.svelte'
+  import { m } from '$lib/paraglide/messages'
+  import { resolve } from '$app/paths'
 
   let { children } = $props()
 
@@ -22,7 +24,7 @@
 
   function handleLogout() {
     authStore.clearAuth()
-    goto('/auth/login')
+    goto(resolve('/auth/login'))
   }
 </script>
 
@@ -34,30 +36,40 @@
   >
 
   <div class="flex items-center gap-2">
+    <select
+      class="bg-transparent"
+      value={getLocale()}
+      onchange={(event) => {
+        setLocale(event.target.value ?? 'en')
+      }}
+    >
+      <option value="en">en</option>
+      <option value="nl">nl</option>
+    </select>
     {#if authStore.isAuthenticated}
       <Button.Root variant="outline" onclick={handleAddAlbum}>
-        add album
+        {m.add_album()}
         {#snippet iconLeft()}
           <Plus />
         {/snippet}
       </Button.Root>
 
-      <Button.Root variant="ghost" href="/profile">
+      <Button.Root variant="ghost" href="/profile" class="capitalize">
         {#snippet iconLeft()}
           <User />
         {/snippet}
-        {authStore.user?.email}
       </Button.Root>
 
-      <Button.Root variant="outline" onclick={handleLogout}>
-        logout
+      <Button.Root variant="outline" class="capitalize" onclick={handleLogout}>
+        {m.logout()}
         {#snippet iconLeft()}
           <LogOut />
         {/snippet}
       </Button.Root>
     {:else}
-      <Button.Root variant="outline" href="/auth/login">sign in</Button.Root>
-      <Button.Root variant="outline" href="/auth/register">sign up</Button.Root>
+      <Button.Root variant="outline" href="/auth/login" class="capitalize"
+        >{m.sign_in()}</Button.Root
+      >
     {/if}
   </div>
 </nav>

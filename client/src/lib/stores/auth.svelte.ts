@@ -1,7 +1,17 @@
 import { browser } from '$app/environment'
-import type { AuthResponseDto } from '$lib/api/generated'
 
 const TOKEN_KEY = 'albumz_access_token'
+
+interface AuthResponseDto {
+	accessToken: string
+	tokenType: string
+	expiresIn: number
+	user: {
+		id: string
+		email: string
+		username?: string
+	}
+}
 
 interface AuthState {
 	user: {
@@ -66,11 +76,11 @@ function createAuthStore() {
 
 			try {
 				// Dynamic import to avoid circular dependency
-				const { authControllerGetProfile } = await import('$lib/api')
+				const { trpc } = await import('$lib/trpc/client')
 
-				const { data, error } = await authControllerGetProfile()
+				const data = await trpc.auth.profile.query()
 
-				if (error || !data) {
+				if (!data) {
 					this.clearAuth()
 					return false
 				}

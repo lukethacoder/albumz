@@ -1,33 +1,80 @@
 // IMPORTANT: Initialize varlock FIRST before any other imports
 import { ENV } from './env'
 
-import { NestFactory } from '@nestjs/core'
-import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger'
-import { AppModule } from './app.module'
+import Fastify from 'fastify'
+import cors from '@fastify/cors'
+import jwt from '@fastify/jwt'
+import { fastifyTRPCPlugin } from '@trpc/server/adapters/fastify'
+import { appRouter } from './trpc/root'
+import { createContext } from './trpc/context'
+import { pgPool } from './db/database'
+import type { User } from './db/schema'
 
-async function bootstrap() {
-  const app = await NestFactory.create(AppModule)
+// Extend Fastify types for JWT
+declare module 'fastify' {
+  interface FastifyRequest {
+    user?: User
+  }
+}
+
+async function main() {
+  const server = Fastify({
+    logger: true,
+    maxParamLength: 5000,
+  })
 
   console.log('🔒 CORS Origin:', ENV.CORS_ORIGIN)
 
-  // allows svelte to call client-side
-  app.enableCors({
+  // Register CORS
+  await server.register(cors, {
     origin: ENV.CORS_ORIGIN,
     methods: ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
-    credentials: true, // required if you're sending cookies or auth headers
+    credentials: true,
   })
 
-  const config = new DocumentBuilder()
-    .setTitle('Albumz')
-    .setDescription('The albumz API')
-    .setVersion('1.0')
-    .addBearerAuth()
-    // .addTag('albumz')
-    .build()
-  const documentFactory = () => SwaggerModule.createDocument(app, config)
-  SwaggerModule.setup('api/swagger', app, documentFactory)
+  // Register JWT
+  await server.register(jwt, {
+    secret: ENV.JWT_SECRET,
+  })
 
-  await app.listen(ENV.PORT ? String(ENV.PORT) : '3000')
+  // Register tRPC
+  await server.register(fastifyTRPCPlugin, {
+    prefix: '/trpc',
+    trpcOptions: {
+      router: appRouter,
+      createContext,
+    },
+  })
+
+  // Health check endpoint
+  server.get('/health', async () => {
+    return { status: 'ok', timestamp: new Date().toISOString() }
+  })
+
+  // Graceful shutdown
+  const signals = ['SIGINT', 'SIGTERM']
+  signals.forEach((signal) => {
+    process.on(signal, async () => {
+      console.log(`Received ${signal}, shutting down gracefully...`)
+      await server.close()
+      await pgPool.end()
+      process.exit(0)
+    })
+  })
+
+  // Start server
+  const port = ENV.PORT ? Number(ENV.PORT) : 3000
+  const host = '0.0.0.0'
+
+  try {
+    await server.listen({ port, host })
+    console.log(`🚀 Server ready at http://${host}:${port}`)
+    console.log(`📡 tRPC endpoint: http://${host}:${port}/trpc`)
+  } catch (err) {
+    server.log.error(err)
+    process.exit(1)
+  }
 }
-bootstrap()
+
+main()

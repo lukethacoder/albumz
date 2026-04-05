@@ -20,6 +20,7 @@ export const albums = pgTable('albums', {
   releaseDate: date('release_date'),
   description: text('description'),
   coverUrl: varchar('cover_url', { length: 500 }),
+  dateCompleted: timestamp('date_completed'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 })

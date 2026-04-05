@@ -1,23 +1,15 @@
 import type { PageServerLoad } from './$types'
-import { albumControllerFindById, client } from '$lib/api/client.server'
+import { createServerTRPCClient } from '$lib/trpc/client.server'
 
 export const load: PageServerLoad = async ({ params, cookies }) => {
   const token = cookies.get('access_token')
+  const trpc = createServerTRPCClient(token)
 
-  const { data, error } = await albumControllerFindById({
-    client,
-    path: {
-      id: params.id,
-    },
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  })
-
-  if (error) {
+  try {
+    const album = await trpc.albums.getById.query({ id: params.id })
+    return { album }
+  } catch (error) {
     console.log('error ', error)
     throw error
   }
-
-  return { album: data }
 }

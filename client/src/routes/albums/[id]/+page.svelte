@@ -1,11 +1,10 @@
 <script lang="ts">
-  import { invalidateAll } from '$app/navigation'
-  import { albumControllerDelete, client } from '$lib/api'
   import { Button } from '$lib/components'
   import { m } from '$lib/paraglide/messages.js'
   import { cn, getRelativeTime } from '$lib/utils.js'
   import { Check } from '@lucide/svelte'
   import Disc from '@lucide/svelte/icons/disc-3'
+  import { albumsStore } from '$lib/stores/albums.svelte'
 
   import { siMusicbrainz, siSpotify, siYoutube, type SimpleIcon } from 'simple-icons'
 
@@ -13,21 +12,22 @@
   let { data } = $props()
   let { album } = $derived(data)
 
-  let isComplete = $state(false)
+  // Check if album is completed based on dateCompleted field
+  let isComplete = $derived(!!album.dateCompleted)
+
+  // Track loading and error state for this album
+  let isLoading = $derived(albumsStore.isLoading(album.id))
+  let error = $derived(albumsStore.getError(album.id))
 
   async function deleteAlbum() {
     if (album) {
-      const { error } = await albumControllerDelete({ client, path: { id: album.id } })
-      if (!error) {
-        // refresh or update local state
-        await invalidateAll()
-      }
+      // Delete and redirect to home page after success
+      await albumsStore.deleteWithConfirm(album.id, album.title, true)
     }
   }
 
   const handleMarkComplete = async () => {
-    console.log('TODO: hook up to DB ')
-    isComplete = !isComplete
+    await albumsStore.toggleComplete(album.id, isComplete)
   }
 
   // SimpleIcon OR iconUrl
@@ -96,7 +96,7 @@
       </div>
       <div class="mt-4 w-full sm:mt-10">
         <div class="mx-auto flex max-w-full flex-col">
-          <h1 class="text-4xl lg:mb-4 lg:text-6xl xl:text-7xl dark:text-neutral-300">
+          <h1 class="mb-2 text-4xl md:mb-4 lg:text-6xl xl:text-7xl dark:text-neutral-300">
             {album.title}
           </h1>
           <h2 class="text-md font-geist font-medium dark:text-neutral-500">
@@ -105,29 +105,45 @@
             <span class="capitalize"> {m.release_date()} {album.releaseDate ?? 'Unknown'}</span>
           </h2>
         </div>
-        <div class="mt-4 flex gap-1">
-          <!-- TODO: fix this button - UI/UX -->
-          <Button.Root
-            variant="outline"
-            theme={isComplete ? 'brand' : 'neutral'}
-            class="capitalize"
-            onclick={handleMarkComplete}
-          >
-            {#snippet iconLeft()}
-              {#if isComplete}
-                <Check />
-              {/if}
-            {/snippet}
-            {isComplete ? m.mark_incomplete() : m.mark_complete()}
-          </Button.Root>
-          <Button.Root variant="ghost" theme="negative" class="capitalize" onclick={deleteAlbum}>
-            {m.remove()}
-          </Button.Root>
+        <div class="mt-4 flex flex-col gap-2">
+          {#if error}
+            <div class="rounded-md bg-red-50 p-3">
+              <p class="text-sm text-red-800">{error}</p>
+            </div>
+          {/if}
+
+          <div class="flex gap-1">
+            <Button.Root
+              variant="outline"
+              theme={isComplete ? 'brand' : 'neutral'}
+              class="capitalize"
+              onclick={handleMarkComplete}
+              disabled={isLoading}
+            >
+              {#snippet iconLeft()}
+                {#if isComplete}
+                  <Check />
+                {/if}
+              {/snippet}
+              {isComplete ? m.mark_incomplete() : m.mark_complete()}
+            </Button.Root>
+            <Button.Root
+              variant="ghost"
+              theme="negative"
+              class="capitalize"
+              onclick={deleteAlbum}
+              disabled={isLoading}
+            >
+              {isLoading ? 'Processing...' : m.remove()}
+            </Button.Root>
+          </div>
         </div>
         <div class="mt-4 mb-3">
           <h2 class="text-md font-geist font-medium dark:text-neutral-500">
             <span class="capitalize">{m.added()}</span>
-            {getRelativeTime(new Date(album.createdAt))}
+            <time datetime={album.createdAt.toLocaleString()}>
+              {getRelativeTime(new Date(album.createdAt))}
+            </time>
           </h2>
         </div>
         <ul class="flex gap-3">

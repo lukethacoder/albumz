@@ -90,10 +90,6 @@
 
   let themeVariantClasses = $derived(variantMap[variant][resolvedTheme as CoreTheme])
   let isDisabled = $derived(disabled || loading)
-
-  $effect(() => {
-    console.log('rest ', rest)
-  })
 </script>
 
 <!-- disabled={isDisabled} -->

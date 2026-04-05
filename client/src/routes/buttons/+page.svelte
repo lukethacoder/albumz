@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Button, Input, InputCheckbox, InputCombobox } from '$lib/components'
+  import { Button, Input, InputCheckbox, InputCombobox, InputSelect } from '$lib/components'
   import { ChevronRight } from '@lucide/svelte'
 
   let saving = $state(false)
@@ -15,6 +15,7 @@
   let passwordValue = $state('')
   let disabledValue = $state('Cannot edit')
   let errorValue = $state('invalid@')
+  let rangeValue = $state('50')
 
   // Checkbox states
   let checked = $state(false)
@@ -26,12 +27,25 @@
   let singleValue = $state<string | undefined>(undefined)
   let multiValue = $state<string[]>([])
 
+  // Select states
+  let selectValue = $state<string | undefined>(undefined)
+
   const fruits = [
     { value: 'apple', label: 'Apple' },
     { value: 'banana', label: 'Banana' },
     { value: 'cherry', label: 'Cherry' },
     { value: 'date', label: 'Date' },
     { value: 'elderberry', label: 'Elderberry' },
+  ]
+
+  const countries = [
+    { value: 'us', label: 'United States' },
+    { value: 'uk', label: 'United Kingdom' },
+    { value: 'ca', label: 'Canada' },
+    { value: 'au', label: 'Australia' },
+    { value: 'de', label: 'Germany' },
+    { value: 'fr', label: 'France' },
+    { value: 'jp', label: 'Japan' },
   ]
 </script>
 
@@ -202,6 +216,26 @@
     </div>
   </section>
 
+  <!-- Input component type="range" -->
+  <section>
+    <h2 class="mb-4 text-xs font-semibold tracking-widest text-zinc-400 uppercase">
+      Input (range)
+    </h2>
+    <div class="max-w-md space-y-4">
+      <div>
+        <Input.Root
+          label="Volume (0-100)"
+          type="range"
+          min="0"
+          max="100"
+          step="1"
+          bind:value={rangeValue}
+        />
+        <p class="mt-1 text-xs text-zinc-500">Value: {rangeValue}</p>
+      </div>
+    </div>
+  </section>
+
   <hr class="border-zinc-200 dark:border-zinc-800" />
 
   <!-- Checkbox component -->
@@ -259,6 +293,26 @@
         />
         {#if multiValue.length > 0}
           <p class="mt-1 text-xs text-zinc-500">Selected: {multiValue.join(', ')}</p>
+        {/if}
+      </div>
+    </div>
+  </section>
+
+  <hr class="border-zinc-200 dark:border-zinc-800" />
+
+  <!-- Select component -->
+  <section>
+    <h2 class="mb-4 text-xs font-semibold tracking-widest text-zinc-400 uppercase">Select</h2>
+    <div class="max-w-xs space-y-4">
+      <div>
+        <InputSelect.Root
+          label="Country"
+          items={countries}
+          bind:value={selectValue}
+          placeholder="Select a country..."
+        />
+        {#if selectValue}
+          <p class="mt-1 text-xs text-zinc-500">Selected: {selectValue}</p>
         {/if}
       </div>
     </div>

@@ -15,11 +15,13 @@ export const albumRouter = router({
       const albumRepo = new AlbumRepository(ctx.db)
       const albumService = new AlbumService(albumRepo)
 
+      // If filtering by specific artist, use the dedicated method
       if (input.artist) {
         return albumService.findByArtist(input.artist, ctx.user.id)
       }
 
-      return albumService.findAll(ctx.user.id)
+      // Otherwise use findAll with filters
+      return albumService.findAll(ctx.user.id, input)
     }),
 
   getById: protectedProcedure

@@ -21,9 +21,17 @@ export const updateAlbumSchema = z.object({
   dateCompleted: z.string().datetime().or(z.date()).nullable().optional(),
 })
 
-// Zod schema for filtering albums by artist
+// Zod schema for filtering and sorting albums
 export const albumFilterSchema = z.object({
   artist: z.string().optional(),
+  search: z.string().optional(),
+  minYear: z.number().int().min(1900).max(2100).optional(),
+  maxYear: z.number().int().min(1900).max(2100).optional(),
+  showCompleted: z.boolean().optional().default(false),
+  sortBy: z
+    .enum(['dateAddedDesc', 'dateAddedAsc', 'releaseDateDesc', 'releaseDateAsc'])
+    .optional()
+    .default('dateAddedDesc'),
 })
 
 // Inferred TypeScript types from Zod schemas

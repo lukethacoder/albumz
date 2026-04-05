@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Button } from '$lib/components'
+  import { Button, Input, InputCheckbox, InputCombobox } from '$lib/components'
   import { ChevronRight } from '@lucide/svelte'
 
   let saving = $state(false)
@@ -8,6 +8,31 @@
     saving = true
     setTimeout(() => (saving = false), 2000)
   }
+
+  // Input states
+  let textValue = $state('')
+  let emailValue = $state('')
+  let passwordValue = $state('')
+  let disabledValue = $state('Cannot edit')
+  let errorValue = $state('invalid@')
+
+  // Checkbox states
+  let checked = $state(false)
+  let checkedDefault = $state(true)
+  let indeterminate = $state(true)
+  let checkedDisabled = $state(true)
+
+  // Combobox states
+  let singleValue = $state<string | undefined>(undefined)
+  let multiValue = $state<string[]>([])
+
+  const fruits = [
+    { value: 'apple', label: 'Apple' },
+    { value: 'banana', label: 'Banana' },
+    { value: 'cherry', label: 'Cherry' },
+    { value: 'date', label: 'Date' },
+    { value: 'elderberry', label: 'Elderberry' },
+  ]
 </script>
 
 <div class="max-w-4xl space-y-10 p-10">
@@ -114,6 +139,127 @@
       <div class="flex gap-2">
         <Button.Root theme="neutral" variant="ghost">Go back</Button.Root>
         <Button.Root theme="negative" variant="solid">Delete account</Button.Root>
+      </div>
+    </div>
+  </section>
+
+  <hr class="border-zinc-200 dark:border-zinc-800" />
+
+  <!-- Input component -->
+  <section>
+    <h2 class="mb-4 text-xs font-semibold tracking-widest text-zinc-400 uppercase">Input</h2>
+    <div class="max-w-md space-y-4">
+      <div>
+        <Input.Root
+          label="Text input"
+          type="text"
+          placeholder="Enter text..."
+          bind:value={textValue}
+        />
+        {#if textValue}
+          <p class="mt-1 text-xs text-zinc-500">Value: {textValue}</p>
+        {/if}
+      </div>
+
+      <div>
+        <Input.Root
+          label="Email input"
+          type="email"
+          placeholder="you@example.com"
+          bind:value={emailValue}
+        />
+      </div>
+
+      <div>
+        <Input.Root
+          label="Password input"
+          type="password"
+          placeholder="••••••••"
+          bind:value={passwordValue}
+        />
+      </div>
+
+      <div>
+        <Input.Root
+          label="Disabled input"
+          labelProps={{ class: 'text-zinc-400' }}
+          type="text"
+          disabled
+          bind:value={disabledValue}
+        />
+      </div>
+
+      <div>
+        <Input.Root
+          label="Invalid input"
+          type="email"
+          placeholder="Enter email"
+          aria-invalid="true"
+          bind:value={errorValue}
+        />
+        <p class="mt-1 text-xs text-red-600">Please enter a valid email address</p>
+      </div>
+    </div>
+  </section>
+
+  <hr class="border-zinc-200 dark:border-zinc-800" />
+
+  <!-- Checkbox component -->
+  <section>
+    <h2 class="mb-4 text-xs font-semibold tracking-widest text-zinc-400 uppercase">Checkbox</h2>
+    <div class="space-y-4">
+      <InputCheckbox.Root
+        bind:checked
+        label={`Unchecked by default ${checked ? 'checked' : 'unchecked'}`}
+      />
+
+      <InputCheckbox.Root bind:checked={checkedDefault} label="Checked by default" />
+
+      <InputCheckbox.Root bind:indeterminate label="Indeterminate state" />
+
+      <InputCheckbox.Root
+        bind:checked={checkedDisabled}
+        disabled
+        label="Disabled (checked)"
+        labelProps={{ class: 'text-zinc-400' }}
+      />
+
+      <InputCheckbox.Root
+        disabled
+        label="Disabled (unchecked)"
+        labelProps={{ class: 'text-zinc-400' }}
+      />
+    </div>
+  </section>
+
+  <hr class="border-zinc-200 dark:border-zinc-800" />
+
+  <!-- Combobox component -->
+  <section>
+    <h2 class="mb-4 text-xs font-semibold tracking-widest text-zinc-400 uppercase">Combobox</h2>
+    <div class="max-w-xs space-y-4">
+      <div>
+        <InputCombobox.Root
+          type="single"
+          items={fruits}
+          bind:value={singleValue}
+          label="Single select"
+        />
+        {#if singleValue}
+          <p class="mt-1 text-xs text-zinc-500">Selected: {singleValue}</p>
+        {/if}
+      </div>
+
+      <div>
+        <InputCombobox.Root
+          type="multiple"
+          items={fruits}
+          bind:value={multiValue}
+          label="Multiple select"
+        />
+        {#if multiValue.length > 0}
+          <p class="mt-1 text-xs text-zinc-500">Selected: {multiValue.join(', ')}</p>
+        {/if}
       </div>
     </div>
   </section>

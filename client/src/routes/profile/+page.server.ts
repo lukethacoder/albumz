@@ -4,13 +4,13 @@ import { resolve } from '$app/paths'
 import { redirect } from '@sveltejs/kit'
 import { TRPCClientError } from '@trpc/client'
 
-export const load: PageServerLoad = async ({ params, cookies }) => {
+export const load: PageServerLoad = async ({ cookies }) => {
   const token = cookies.get('access_token')
   const trpc = createServerTRPCClient(token)
 
   try {
-    const album = await trpc.albums.getById.query({ id: params.id })
-    return { album }
+    const user = await trpc.auth.profile.query()
+    return { user }
   } catch (error) {
     console.log('error ', error)
     if (error instanceof TRPCClientError && error.data?.code === 'UNAUTHORIZED') {

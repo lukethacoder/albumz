@@ -1,3 +1,6 @@
 export { Album } from './album'
 export { Button } from './button'
+export { Input } from './input'
+export { InputCheckbox } from './inputCheckbox'
+export { InputCombobox } from './inputCombobox'
 export { Modal } from './modal'

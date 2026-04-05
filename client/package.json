@@ -13,13 +13,11 @@
     "lint": "prettier --check . && eslint .",
     "format": "prettier --write .",
     "test:unit": "vitest",
-    "test": "npm run test:unit -- --run",
-    "generate:api": "openapi-ts"
+    "test": "npm run test:unit -- --run"
   },
   "devDependencies": {
     "@eslint/compat": "^2.0.2",
     "@eslint/js": "^9.39.2",
-    "@hey-api/openapi-ts": "^0.94.0",
     "@inlang/paraglide-js": "^2.10.0",
     "@sveltejs/adapter-auto": "^7.0.0",
     "@sveltejs/kit": "^2.50.2",
@@ -57,6 +55,9 @@
     "@fontsource-variable/funnel-display": "^5.2.8",
     "@fontsource-variable/geist-mono": "^5.2.7",
     "@lucide/svelte": "^0.577.0",
-    "bits-ui": "^2.16.3"
+    "@trpc/client": "^11.0.0",
+    "@trpc/server": "^11.0.0",
+    "bits-ui": "^2.16.3",
+    "superjson": "^2.2.2"
   }
 }

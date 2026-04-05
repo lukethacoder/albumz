@@ -66,7 +66,7 @@ services:
     restart: 'no'
 
   # ─────────────────────────────────────────
-  # NestJS Backend API (Development)
+  # tRPC + Fastify Backend API (Development)
   # ─────────────────────────────────────────
   api:
     build:
@@ -88,8 +88,6 @@ services:
       - ./api/src:/app/src:cached
       - ./api/package.json:/app/package.json:cached
       - ./api/tsconfig.json:/app/tsconfig.json:cached
-      - ./api/tsconfig.build.json:/app/tsconfig.build.json:cached
-      - ./api/nest-cli.json:/app/nest-cli.json:cached
       - ./api/.env:/app/.env:cached
       - ./api/.env.schema:/app/.env.schema:cached
       # Exclude node_modules to use container's version

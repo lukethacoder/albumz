@@ -1,8 +1,9 @@
 <script lang="ts">
   import { goto } from '$app/navigation'
   import { resolve } from '$app/paths'
-  import { authControllerRegister } from '$lib/api'
+  import { trpc } from '$lib/trpc/client'
   import { authStore } from '$lib/stores/auth.svelte'
+  import { TRPCClientError } from '@trpc/client'
 
   let email = $state('')
   let password = $state('')
@@ -22,19 +23,11 @@
     }
 
     try {
-      const { data, error: apiError } = await authControllerRegister({
-        body: {
-          email,
-          password,
-          username,
-        },
+      const data = await trpc.auth.register.mutate({
+        email,
+        password,
+        username,
       })
-
-      if (apiError) {
-        // @ts-expect-error - API error handling
-        error = apiError.message || 'Registration failed. Email may already be in use.'
-        return
-      }
 
       if (!data) {
         error = 'Registration failed. Please try again.'
@@ -44,7 +37,11 @@
       authStore.setAuth(data)
       goto(resolve('/'))
     } catch (err) {
-      error = 'An error occurred. Please try again.'
+      if (err instanceof TRPCClientError) {
+        error = err.message || 'Registration failed. Email may already be in use.'
+      } else {
+        error = 'An error occurred. Please try again.'
+      }
       console.error('Registration error:', err)
     } finally {
       loading = false

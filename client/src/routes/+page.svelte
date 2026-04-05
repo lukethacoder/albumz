@@ -1,18 +1,8 @@
 <script lang="ts">
-  import { invalidateAll } from '$app/navigation'
-  import { albumControllerDelete, client } from '$lib/api'
   import { Album } from '$lib/components/album/index.js'
 
   // albums from server load
   let { data } = $props()
-
-  async function deleteAlbum(id: string) {
-    const { error } = await albumControllerDelete({ client, path: { id } })
-    if (!error) {
-      // refresh or update local state
-      await invalidateAll()
-    }
-  }
 </script>
 
 <svelte:head>
@@ -31,7 +21,6 @@
           artist={album.artist}
           releaseDate={album.releaseDate}
           coverUrl={album.coverUrl}
-          onDeleteAlbum={deleteAlbum}
         />
       </li>
     {/each}

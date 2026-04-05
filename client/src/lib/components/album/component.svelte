@@ -1,11 +1,27 @@
 <script lang="ts">
   import { resolve } from '$app/paths'
-  import { Disc } from '@lucide/svelte'
+  import { Disc, Trash2 } from '@lucide/svelte'
+  import { albumsStore } from '$lib/stores/albums.svelte'
+  import { m } from '$lib/paraglide/messages.js'
   import type { RootProps } from './types'
 
   let { albumId, title, artist, coverUrl, releaseDate, onDeleteAlbum }: RootProps = $props()
 
-  const releaseDateFormatted = $derived(releaseDate.split('-')[0])
+  const releaseDateFormatted = $derived(releaseDate ? releaseDate.split('-')[0] : 'Unknown')
+
+  let isDeleting = $derived(albumsStore.isLoading(albumId))
+
+  async function handleDelete(e: MouseEvent) {
+    e.preventDefault()
+    e.stopPropagation()
+
+    if (onDeleteAlbum) {
+      await onDeleteAlbum(albumId, title)
+    } else {
+      // Fallback to direct store usage
+      await albumsStore.deleteWithConfirm(albumId, title, false)
+    }
+  }
 </script>
 
 <div class="relative flex w-full flex-col rounded-md hover:bg-neutral-800">
@@ -30,6 +46,14 @@
     <p class="mt-0 line-clamp-1 font-geist text-sm dark:text-neutral-500">
       {releaseDateFormatted} • {artist}
     </p>
-    <!-- <button onclick={() => onDeleteAlbum(albumId)}>🚮</button> --></span
+    <button
+      onclick={handleDelete}
+      disabled={isDeleting}
+      class="relative z-20 mt-2 flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium text-red-500 opacity-70 transition hover:bg-red-500/10 hover:opacity-100 disabled:opacity-40"
+      aria-label="Delete album"
+    >
+      <Trash2 class="h-4 w-4" />
+      {isDeleting ? 'Deleting...' : m.remove()}
+    </button></span
   >
 </div>

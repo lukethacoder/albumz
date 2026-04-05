@@ -1,25 +1,21 @@
 import type { PageServerLoad } from './$types'
-import { albumControllerFindAll, client } from '$lib/api/client.server'
+import { createServerTRPCClient } from '$lib/trpc/client.server'
 import { resolve } from '$app/paths'
 import { redirect } from '@sveltejs/kit'
+import { TRPCClientError } from '@trpc/client'
 
 export const load: PageServerLoad = async ({ cookies }) => {
   const token = cookies.get('access_token')
+  const trpc = createServerTRPCClient(token)
 
-  const { data, error } = await albumControllerFindAll({
-    client,
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  })
-
-  if (error) {
+  try {
+    const albums = await trpc.albums.list.query({})
+    return { albums }
+  } catch (error) {
     console.log('error ', error)
-    if (error?.statusCode === 401) {
+    if (error instanceof TRPCClientError && error.data?.code === 'UNAUTHORIZED') {
       throw redirect(307, resolve('/auth/login'))
     }
     throw error
   }
-
-  return { albums: data }
 }

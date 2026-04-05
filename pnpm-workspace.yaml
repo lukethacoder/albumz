@@ -3,7 +3,6 @@ packages:
   - client
 
 onlyBuiltDependencies:
-  - '@nestjs/core'
   - '@scarf/scarf'
   - esbuild
   - unrs-resolver

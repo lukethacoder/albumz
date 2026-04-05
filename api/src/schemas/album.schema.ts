@@ -1,0 +1,32 @@
+import { z } from 'zod'
+
+// Zod schema for creating an album
+export const createAlbumSchema = z.object({
+  title: z.string().min(1).max(255),
+  artist: z.string().min(1).max(255),
+  genre: z.string().max(100).optional(),
+  releaseDate: z.string().datetime().or(z.string().date()).optional(),
+  description: z.string().optional(),
+  coverUrl: z.string().url().max(500).optional(),
+})
+
+// Zod schema for updating an album (all fields optional)
+export const updateAlbumSchema = z.object({
+  title: z.string().min(1).max(255).optional(),
+  artist: z.string().min(1).max(255).optional(),
+  genre: z.string().max(100).optional(),
+  releaseDate: z.string().datetime().or(z.string().date()).optional(),
+  description: z.string().optional(),
+  coverUrl: z.string().url().max(500).optional(),
+  dateCompleted: z.string().datetime().or(z.date()).nullable().optional(),
+})
+
+// Zod schema for filtering albums by artist
+export const albumFilterSchema = z.object({
+  artist: z.string().optional(),
+})
+
+// Inferred TypeScript types from Zod schemas
+export type CreateAlbumInput = z.infer<typeof createAlbumSchema>
+export type UpdateAlbumInput = z.infer<typeof updateAlbumSchema>
+export type AlbumFilter = z.infer<typeof albumFilterSchema>

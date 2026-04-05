@@ -1,11 +1,12 @@
 <script lang="ts">
   import { goto } from '$app/navigation'
   import { resolve } from '$app/paths'
-  import { authControllerLogin } from '$lib/api'
+  import { trpc } from '$lib/trpc/client'
   import { Button } from '$lib/components'
   import { m } from '$lib/paraglide/messages'
   import { authStore } from '$lib/stores/auth.svelte'
   import { ENV } from 'varlock/env'
+  import { TRPCClientError } from '@trpc/client'
 
   let email = $state(ENV.VARLOCK_ENV === 'development' ? 'admin@albumz.local' : '')
   let password = $state(ENV.VARLOCK_ENV === 'development' ? 'password' : '')
@@ -18,11 +19,9 @@
     error = null
 
     try {
-      const { data, error: apiError } = await authControllerLogin({
-        body: { email, password },
-      })
+      const data = await trpc.auth.login.mutate({ email, password })
 
-      if (apiError || !data) {
+      if (!data) {
         error = 'Invalid email or password'
         return
       }
@@ -30,7 +29,11 @@
       authStore.setAuth(data)
       goto(resolve('/'))
     } catch (err) {
-      error = 'An error occurred. Please try again.'
+      if (err instanceof TRPCClientError) {
+        error = 'Invalid email or password'
+      } else {
+        error = 'An error occurred. Please try again.'
+      }
       console.error('Login error:', err)
     } finally {
       loading = false

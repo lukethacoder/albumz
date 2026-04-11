@@ -31,7 +31,7 @@ export const authRouter = router({
     if (!user) {
       throw new TRPCError({
         code: 'UNAUTHORIZED',
-        message: 'Invalid credentials',
+        message: 'INVALID_CREDENTIALS',
       })
     }
 

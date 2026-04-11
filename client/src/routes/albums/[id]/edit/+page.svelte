@@ -5,6 +5,7 @@
   import { Button, Input } from '$lib/components'
   import { TRPCClientError } from '@trpc/client'
   import { m } from '$lib/paraglide/messages'
+  import { translateError } from '$lib/utils'
 
   let { data } = $props()
   const { album } = $derived(data)
@@ -37,7 +38,7 @@
       goto(resolve(`/albums/${album.id}`))
     } catch (err) {
       if (err instanceof TRPCClientError) {
-        error = err.message
+        error = translateError(err.message)
       } else {
         error = m.an_error_occurred()
       }

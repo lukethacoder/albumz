@@ -6,6 +6,7 @@
   import { TRPCClientError } from '@trpc/client'
   import { importStore } from '$lib/stores/import.svelte'
   import { m } from '$lib/paraglide/messages'
+  import { translateError } from '$lib/utils'
 
   type Mode = 'url' | 'manual'
 
@@ -69,7 +70,7 @@
       goto(resolve('/'))
     } catch (err) {
       if (err instanceof TRPCClientError) {
-        error = err.message
+        error = translateError(err.message)
       } else {
         error = m.an_error_occurred()
       }
@@ -92,7 +93,7 @@
       goto(resolve('/'))
     } catch (err) {
       if (err instanceof TRPCClientError) {
-        error = err.message
+        error = translateError(err.message)
       } else {
         error = m.an_error_occurred()
       }

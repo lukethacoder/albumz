@@ -351,8 +351,7 @@ export const albumRouter = router({
       if (kind === 'unsupported') {
         throw new TRPCError({
           code: 'BAD_REQUEST',
-          message:
-            'Unsupported URL. Please provide a Spotify, Apple Music, or YouTube URL.',
+          message: 'UNSUPPORTED_URL',
         })
       }
 
@@ -372,7 +371,7 @@ export const albumRouter = router({
       if (!isEnabled(enabled, urlService)) {
         throw new TRPCError({
           code: 'BAD_REQUEST',
-          message: `${urlService.charAt(0).toUpperCase() + urlService.slice(1)} is disabled. Enable it in your profile settings to import from this URL.`,
+          message: 'SERVICE_DISABLED',
         })
       }
 
@@ -446,8 +445,7 @@ export const albumRouter = router({
         if (!configRow?.navidromeUrl || !isEnabled(enabled, 'navidrome')) {
           throw new TRPCError({
             code: 'BAD_REQUEST',
-            message:
-              'Album has no MusicBrainz ID — unable to find on MusicBrainz.',
+            message: 'NO_MBID',
           })
         }
       }

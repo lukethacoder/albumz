@@ -19,7 +19,7 @@ export const protectedProcedure = t.procedure.use(async ({ ctx, next }) => {
   if (!ctx.user) {
     throw new TRPCError({
       code: 'UNAUTHORIZED',
-      message: 'You must be logged in to access this resource',
+      message: 'MUST_BE_LOGGED_IN',
     })
   }
 

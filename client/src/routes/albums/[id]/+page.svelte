@@ -1,7 +1,7 @@
 <script lang="ts">
   import { Button } from '$lib/components'
   import { m } from '$lib/paraglide/messages.js'
-  import { cn, getRelativeTime } from '$lib/utils'
+  import { cn, getRelativeTime, translateError } from '$lib/utils'
   import { Check, RefreshCw, Pencil } from '@lucide/svelte'
   import Disc from '@lucide/svelte/icons/disc-3'
   import { albumsStore } from '$lib/stores/albums.svelte'
@@ -54,7 +54,7 @@
       await invalidateAll()
     } catch (err) {
       if (err instanceof TRPCClientError) {
-        refreshError = err.message
+        refreshError = translateError(err.message)
       } else {
         refreshError = m.failed_to_refresh_metadata()
       }

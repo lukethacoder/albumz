@@ -1,7 +1,34 @@
 # albumz
 💿 self-hosted album backlog tracker 
 
+## Features
+- Add by URL for Spotify, YouTube and Apple Music
+- Multi-user Support
+- Automatic linking via LastFM and MusicBrainz
+- Automatic metdata fetching via LastFM & MusicBrainz
+- External link support: Spotify, YouTube, LastFM, MusicBrainz, RateYourMusic, Navidrome
+- Extensive sorting and filtering
+- i18n Support* (English and Dutch, PRs welcome for extending)
+
+## Deployment
+
+// TODO:
+
 ## Development
+
+The following documentation is for project development only.
+
+### Tech Stack
+
+- tRPC / Fastify
+- PostgreSQL
+- SvelteKit
+- TailwindCSS
+- inlang
+- bits-ui
+- lucide icons
+
+### Getting Started
 
 ```bash
 pnpm i
@@ -29,7 +56,7 @@ pnpm dev:logs # or pnpm prod:logs
 docker compose -f docker-compose.dev.yml up --build api
 ```
 
-## Database Migrations
+### Database Migrations
 
 1. Add/Edit the respective `./api/src/db/schema/` files
 2. run `npx drizzle-kit generate` from the `./api` folder

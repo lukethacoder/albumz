@@ -158,6 +158,7 @@ async function runPlaylistImportJob(
 
     const albumRepo = new AlbumRepository(db)
     const albumService = new AlbumService(albumRepo)
+    const createdAlbumIds: string[] = []
 
     for (let i = 0; i < albums.length; i++) {
       const metadata = albums[i]
@@ -171,16 +172,112 @@ async function runPlaylistImportJob(
         if (lastFm?.mbid) metadata.mbid = lastFm.mbid
       }
 
-      await albumService.create(metadata, userId)
+      const created = await albumService.create(metadata, userId)
+      createdAlbumIds.push(created.id)
 
       updateJob(jobId, { processedAlbums: i + 1 })
     }
 
     updateJob(jobId, { status: 'complete', step: 'complete' })
+
+    // Fire background enrichment for each created album — runs after job is marked complete
+    for (const albumId of createdAlbumIds) {
+      void enrichAlbum(albumId, userId)
+    }
   } catch (err) {
     const message =
       err instanceof Error ? err.message : 'An unknown error occurred'
     updateJob(jobId, { status: 'error', error: message })
+  }
+}
+
+/**
+ * Best-effort metadata enrichment for a single album.
+ * Silently skips steps that fail or lack an MBID — safe to fire-and-forget.
+ */
+async function enrichAlbum(albumId: string, userId: string): Promise<void> {
+  try {
+    const albumRepo = new AlbumRepository(db)
+    const albumService = new AlbumService(albumRepo)
+    const album = await albumService.findById(albumId, userId)
+
+    const [configRow] = await db
+      .select()
+      .from(userConfig)
+      .where(eq(userConfig.userId, userId))
+      .limit(1)
+    const enabled = configRow?.enabledExternalServices ?? []
+
+    const updates: Record<string, unknown> = {}
+    let mbid = album.mbid
+
+    // Try Navidrome to resolve MBID if not already set
+    if (!mbid && configRow?.navidromeUrl && isEnabled(enabled, 'navidrome')) {
+      const navResult = await fetchNavidromeAlbumUrl(
+        album.artist,
+        album.title,
+        {
+          url: configRow.navidromeUrl,
+          username: configRow.navidromeUsername!,
+          password: decrypt(configRow.navidromePassword!),
+        },
+      )
+      if (navResult?.mbid) {
+        mbid = navResult.mbid
+        updates.mbid = mbid
+        updates.urlNavidrome = navResult.relativeUrl
+      }
+    }
+
+    if (!mbid) return // No MBID — nothing more to do
+
+    let lastFmCoverUrl: string | undefined
+    if (isEnabled(enabled, 'lastfm')) {
+      const lastFm = await fetchLastFmAlbumInfo(album.artist, album.title)
+      if (lastFm?.urlLastFm) updates.urlLastFm = lastFm.urlLastFm
+      lastFmCoverUrl = lastFm?.coverUrl
+    }
+
+    if (isEnabled(enabled, 'musicbrainz')) {
+      const caaCover = await fetchCoverArtFromMbid(mbid)
+      const newCover = caaCover ?? lastFmCoverUrl
+      if (newCover) updates.coverUrl = newCover
+
+      const mb = await enrichFromMusicBrainz(mbid)
+      if (mb.urlSpotify && isEnabled(enabled, 'spotify'))
+        updates.urlSpotify = mb.urlSpotify
+      if (mb.urlAppleMusic && isEnabled(enabled, 'applemusic'))
+        updates.urlAppleMusic = mb.urlAppleMusic
+      if (mb.urlYoutube && isEnabled(enabled, 'youtube'))
+        updates.urlYoutube = mb.urlYoutube
+      if (mb.urlYoutubeMusic && isEnabled(enabled, 'youtube'))
+        updates.urlYoutubeMusic = mb.urlYoutubeMusic
+      if (mb.urlRateYourMusic && isEnabled(enabled, 'rateyourmusic'))
+        updates.urlRateYourMusic = mb.urlRateYourMusic
+    }
+
+    if (
+      !updates.urlNavidrome &&
+      configRow?.navidromeUrl &&
+      isEnabled(enabled, 'navidrome')
+    ) {
+      const navResult = await fetchNavidromeAlbumUrl(
+        album.artist,
+        album.title,
+        {
+          url: configRow.navidromeUrl,
+          username: configRow.navidromeUsername!,
+          password: decrypt(configRow.navidromePassword!),
+        },
+      )
+      if (navResult) updates.urlNavidrome = navResult.relativeUrl
+    }
+
+    if (Object.keys(updates).length > 0) {
+      await albumService.update(albumId, userId, updates)
+    }
+  } catch {
+    // Background enrichment — swallow errors silently
   }
 }
 
@@ -334,17 +431,18 @@ export const albumRouter = router({
       const albumService = new AlbumService(albumRepo)
       const album = await albumService.findById(input.id, ctx.user.id)
 
-      const [configRow] = await ctx.db
-        .select()
-        .from(userConfig)
-        .where(eq(userConfig.userId, ctx.user.id))
-        .limit(1)
-      const enabled = configRow?.enabledExternalServices ?? []
+      // Validate that enrichment is possible before delegating
+      if (!album.mbid) {
+        const [configRow] = await ctx.db
+          .select({
+            navidromeUrl: userConfig.navidromeUrl,
+            enabledExternalServices: userConfig.enabledExternalServices,
+          })
+          .from(userConfig)
+          .where(eq(userConfig.userId, ctx.user.id))
+          .limit(1)
+        const enabled = configRow?.enabledExternalServices ?? []
 
-      const updates: Record<string, string> = {}
-      let mbid = album.mbid
-
-      if (!mbid) {
         if (!configRow?.navidromeUrl || !isEnabled(enabled, 'navidrome')) {
           throw new TRPCError({
             code: 'BAD_REQUEST',
@@ -352,72 +450,10 @@ export const albumRouter = router({
               'Album has no MusicBrainz ID — unable to find on MusicBrainz.',
           })
         }
-
-        const navResult = await fetchNavidromeAlbumUrl(
-          album.artist,
-          album.title,
-          {
-            url: configRow.navidromeUrl,
-            username: configRow.navidromeUsername!,
-            password: decrypt(configRow.navidromePassword!),
-          },
-        )
-
-        if (!navResult?.mbid) {
-          throw new TRPCError({
-            code: 'BAD_REQUEST',
-            message:
-              'Album has no MusicBrainz ID — unable to find on MusicBrainz.',
-          })
-        }
-
-        mbid = navResult.mbid
-        updates.mbid = mbid
-        updates.urlNavidrome = navResult.relativeUrl
       }
 
-      let lastFmCoverUrl: string | undefined
-      if (isEnabled(enabled, 'lastfm')) {
-        const lastFm = await fetchLastFmAlbumInfo(album.artist, album.title)
-        if (lastFm?.urlLastFm) updates.urlLastFm = lastFm.urlLastFm
-        lastFmCoverUrl = lastFm?.coverUrl
-      }
-      if (isEnabled(enabled, 'musicbrainz')) {
-        const caaCover = await fetchCoverArtFromMbid(mbid)
-        const newCover = caaCover ?? lastFmCoverUrl
-        if (newCover) updates.coverUrl = newCover
-
-        const mb = await enrichFromMusicBrainz(mbid)
-        if (mb.urlSpotify && isEnabled(enabled, 'spotify'))
-          updates.urlSpotify = mb.urlSpotify
-        if (mb.urlAppleMusic && isEnabled(enabled, 'applemusic'))
-          updates.urlAppleMusic = mb.urlAppleMusic
-        if (mb.urlYoutube && isEnabled(enabled, 'youtube'))
-          updates.urlYoutube = mb.urlYoutube
-        if (mb.urlYoutubeMusic && isEnabled(enabled, 'youtube'))
-          updates.urlYoutubeMusic = mb.urlYoutubeMusic
-        if (mb.urlRateYourMusic && isEnabled(enabled, 'rateyourmusic'))
-          updates.urlRateYourMusic = mb.urlRateYourMusic
-      }
-
-      if (
-        !updates.urlNavidrome &&
-        configRow?.navidromeUrl &&
-        isEnabled(enabled, 'navidrome')
-      ) {
-        const navResult = await fetchNavidromeAlbumUrl(
-          album.artist,
-          album.title,
-          {
-            url: configRow.navidromeUrl,
-            username: configRow.navidromeUsername!,
-            password: decrypt(configRow.navidromePassword!),
-          },
-        )
-        if (navResult) updates.urlNavidrome = navResult.relativeUrl
-      }
-
-      return albumService.update(input.id, ctx.user.id, updates)
+      await enrichAlbum(input.id, ctx.user.id)
+      return albumService.findById(input.id, ctx.user.id)
     }),
 
   markComplete: protectedProcedure

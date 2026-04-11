@@ -28,12 +28,6 @@
     }),
   )
 
-  const mergedTriggerProps = $derived(
-    mergeProps(triggerProps, {
-      id,
-    }),
-  )
-
   const mergedContentProps = $derived(
     mergeProps(contentProps, {
       side: 'bottom',
@@ -60,6 +54,7 @@ from the perspective of the consumer of this component, it will be typed appropr
 
 <Select.Root bind:value={value as never} type={selectType as any} {...restProps}>
   <Select.Trigger
+    {id}
     class={cn(
       'flex h-9 w-full cursor-pointer items-center justify-between rounded-md border border-zinc-900/20 bg-transparent px-3 py-1 text-sm transition-colors',
       'text-zinc-700 placeholder:text-zinc-500',
@@ -70,7 +65,6 @@ from the perspective of the consumer of this component, it will be typed appropr
       'data-placeholder:text-zinc-500 dark:data-placeholder:text-zinc-500',
       triggerProps?.class,
     )}
-    {...mergedTriggerProps}
   >
     {selectedLabel ? selectedLabel : placeholder}
     <svg

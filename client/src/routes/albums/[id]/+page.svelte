@@ -56,7 +56,7 @@
       if (err instanceof TRPCClientError) {
         refreshError = err.message
       } else {
-        refreshError = 'Failed to refresh metadata'
+        refreshError = m.failed_to_refresh_metadata()
       }
     } finally {
       refreshing = false
@@ -179,12 +179,12 @@
               disabled={isLoading}
               onclick={deleteAlbum}
             >
-              {isLoading ? 'Processing...' : m.remove()}
+              {isLoading ? m.processing() : m.remove()}
             </Button.Root>
             <Button.Root
               variant="ghost"
               theme="neutral"
-              aria-label={refreshing ? 'Refreshing...' : 'Refresh Metadata'}
+              aria-label={refreshing ? m.refreshing() : m.refresh_metadata()}
               disabled={refreshing}
               loading={refreshing}
               onclick={handleRefreshMetadata}
@@ -198,7 +198,7 @@
             <Button.Root
               variant="ghost"
               theme="neutral"
-              aria-label="Edit metadata"
+              aria-label={m.edit_metadata()}
               href="/albums/{album.id}/edit"
             >
               {#snippet iconLeft()}

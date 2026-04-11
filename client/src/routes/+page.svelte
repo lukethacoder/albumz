@@ -3,6 +3,7 @@
   import { Input, InputCheckbox, InputCombobox, InputSelect } from '$lib/components'
   import { goto } from '$app/navigation'
   import { page } from '$app/stores'
+  import { m } from '$lib/paraglide/messages'
 
   // albums from server load
   let { data } = $props()
@@ -15,16 +16,16 @@
   let sortOption = $state<string>('dateAddedDesc')
 
   // Sort options
-  const sortOptions = [
-    { value: 'dateAddedDesc', label: 'Date Added (Newest)' },
-    { value: 'dateAddedAsc', label: 'Date Added (Oldest)' },
-    { value: 'releaseDateDesc', label: 'Release Date (Newest)' },
-    { value: 'releaseDateAsc', label: 'Release Date (Oldest)' },
-  ]
+  const sortOptions = $derived([
+    { value: 'dateAddedDesc', label: m.date_added_newest() },
+    { value: 'dateAddedAsc', label: m.date_added_oldest() },
+    { value: 'releaseDateDesc', label: m.release_date_newest() },
+    { value: 'releaseDateAsc', label: m.release_date_oldest() },
+  ])
 
   // Generate year options from available years (unfiltered)
   const yearOptions = $derived([
-    { value: '', label: 'Any' },
+    { value: '', label: m.any() },
     ...data.availableYears.map((year) => ({
       value: year.toString(),
       label: year.toString(),
@@ -91,9 +92,9 @@
       <!-- Search -->
       <div class="w-full max-w-2xl">
         <Input.Root
-          label="Search albums"
+          label={m.search_albums()}
           type="text"
-          placeholder="Search by title or artist..."
+          placeholder={m.search_placeholder()}
           bind:value={searchQuery}
         />
       </div>
@@ -104,18 +105,16 @@
         <div class="flex items-end gap-2">
           <div class="w-32">
             <InputSelect.Root
-              label="Min Year"
+              label={m.min_year()}
               items={yearOptions}
-              placeholder="Min"
               bind:value={minYear}
             />
           </div>
           <span class="mb-2 text-zinc-400">—</span>
           <div class="w-32">
             <InputSelect.Root
-              label="Max Year"
+              label={m.max_year()}
               items={yearOptions}
-              placeholder="Max"
               bind:value={maxYear}
             />
           </div>
@@ -123,19 +122,18 @@
 
         <!-- Show Completed Checkbox -->
         <div class="mb-2">
-          <InputCheckbox.Root bind:checked={showCompleted} label="Show completed albums" />
+          <InputCheckbox.Root bind:checked={showCompleted} label={m.show_completed_albums()} />
         </div>
 
         <!-- Sort Dropdown -->
         <div class="ml-auto w-64">
-          <InputSelect.Root items={sortOptions} bind:value={sortOption} label="Sort by" />
+          <InputSelect.Root items={sortOptions} bind:value={sortOption} label={m.sort_by()} />
         </div>
       </div>
 
       <!-- Results Count -->
       <div class="text-sm text-zinc-600 dark:text-zinc-400">
-        Showing {resultCount}
-        {resultCount === 1 ? 'album' : 'albums'}
+        {m.showing_albums({ count: resultCount })}
       </div>
     </div>
   </div>
@@ -145,9 +143,9 @@
     {#if data.albums.length === 0}
       <div class="flex min-h-[400px] items-center justify-center">
         <div class="text-center">
-          <p class="text-lg font-medium text-zinc-900 dark:text-zinc-100">No albums found</p>
+          <p class="text-lg font-medium text-zinc-900 dark:text-zinc-100">{m.no_albums_found()}</p>
           <p class="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-            Try adjusting your filters or search query
+            {m.try_adjusting_filters()}
           </p>
         </div>
       </div>

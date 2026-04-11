@@ -22,7 +22,7 @@
       const data = await trpc.auth.login.mutate({ email, password })
 
       if (!data) {
-        error = 'Invalid email or password'
+        error = m.invalid_email_or_password()
         return
       }
 
@@ -30,9 +30,9 @@
       goto(resolve('/'))
     } catch (err) {
       if (err instanceof TRPCClientError) {
-        error = 'Invalid email or password'
+        error = m.invalid_email_or_password()
       } else {
-        error = 'An error occurred. Please try again.'
+        error = m.an_error_occurred()
       }
       console.error('Login error:', err)
     } finally {

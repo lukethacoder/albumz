@@ -1,6 +1,9 @@
 <script lang="ts">
   import { invalidateAll } from '$app/navigation'
   import { trpc } from '$lib/trpc/client'
+  import { getLocale, locales, setLocale } from '$lib/paraglide/runtime'
+  import { InputSelect } from '$lib/components'
+  import { m } from '$lib/paraglide/messages.js'
 
   const ALL_SERVICES = [
     { key: 'lastfm', label: 'Last.fm' },
@@ -55,10 +58,10 @@
       // If all available services are selected, save empty array (= all enabled, the default)
       const toSave = selectedServices.length === availableServices.length ? [] : selectedServices
       await trpc.navidrome.saveEnabledServices.mutate({ services: toSave })
-      servicesMessage = { type: 'success', text: 'Preferences saved.' }
+      servicesMessage = { type: 'success', text: m.preferences_saved() }
       await invalidateAll()
     } catch {
-      servicesMessage = { type: 'error', text: 'Failed to save preferences.' }
+      servicesMessage = { type: 'error', text: m.failed_to_save_preferences() }
     } finally {
       servicesSaving = false
     }
@@ -75,10 +78,10 @@
         password: navPassword,
       })
       navPassword = ''
-      navMessage = { type: 'success', text: 'Navidrome config saved.' }
+      navMessage = { type: 'success', text: m.navidrome_config_saved() }
       await invalidateAll()
     } catch {
-      navMessage = { type: 'error', text: 'Failed to save config.' }
+      navMessage = { type: 'error', text: m.failed_to_save_config() }
     } finally {
       navSaving = false
     }
@@ -95,10 +98,10 @@
         password: navPassword,
       })
       navMessage = result.ok
-        ? { type: 'success', text: 'Connection successful.' }
-        : { type: 'error', text: 'Connection failed — check your credentials.' }
+        ? { type: 'success', text: m.connection_successful() }
+        : { type: 'error', text: m.connection_failed_check_credentials() }
     } catch {
-      navMessage = { type: 'error', text: 'Connection failed.' }
+      navMessage = { type: 'error', text: m.connection_failed() }
     } finally {
       navTesting = false
     }
@@ -112,10 +115,10 @@
       navUrl = ''
       navUsername = ''
       navPassword = ''
-      navMessage = { type: 'success', text: 'Navidrome config removed.' }
+      navMessage = { type: 'success', text: m.navidrome_config_removed() }
       await invalidateAll()
     } catch {
-      navMessage = { type: 'error', text: 'Failed to delete config.' }
+      navMessage = { type: 'error', text: m.failed_to_delete_config() }
     } finally {
       navDeleting = false
     }
@@ -129,22 +132,22 @@
 {#if user}
   <div class="mx-auto max-w-4xl space-y-10 p-6">
     <div>
-      <h1 class="mb-6 text-3xl font-bold">Profile</h1>
+      <h1 class="mb-6 text-3xl font-bold">{m.profile()}</h1>
 
       <div class="space-y-4">
         <div>
-          <label class="block text-sm font-medium">User ID</label>
+          <label class="block text-sm font-medium">{m.user_id()}</label>
           <p class="mt-1 text-sm">{user.id}</p>
         </div>
 
         <div>
-          <label class="block text-sm font-medium">Email</label>
+          <label class="block text-sm font-medium">{m.email()}</label>
           <p class="mt-1 text-sm">{user.email}</p>
         </div>
 
         {#if user.username}
           <div>
-            <label class="block text-sm font-medium">Username</label>
+            <label class="block text-sm font-medium">{m.username()}</label>
             <p class="mt-1 text-sm">{user.username}</p>
           </div>
         {/if}
@@ -152,11 +155,21 @@
     </div>
 
     <div>
+      <h2 class="mb-4 text-xl font-semibold">{m.language()}</h2>
+      <InputSelect.Root
+        triggerProps={{ class: 'w-24' }}
+        value={getLocale()}
+        items={locales.map((l) => ({ value: l, label: l }))}
+        onchange={(event) => setLocale(event.target.value ?? 'en')}
+      />
+    </div>
+
+    <div>
       <h2 class="mb-4 text-xl font-semibold">Navidrome</h2>
 
       <div class="max-w-md space-y-4">
         <div>
-          <label class="mb-1 block text-sm font-medium" for="nav-url">Server URL</label>
+          <label class="mb-1 block text-sm font-medium" for="nav-url">{m.server_url()}</label>
           <input
             id="nav-url"
             type="url"
@@ -167,7 +180,7 @@
         </div>
 
         <div>
-          <label class="mb-1 block text-sm font-medium" for="nav-username">Username</label>
+          <label class="mb-1 block text-sm font-medium" for="nav-username">{m.username()}</label>
           <input
             id="nav-username"
             type="text"
@@ -179,7 +192,7 @@
 
         <div>
           <label class="mb-1 block text-sm font-medium" for="nav-password">
-            Password{hasExistingConfig ? ' (leave blank to keep existing)' : ''}
+            {m.password()}{hasExistingConfig ? ` (${m.leave_blank_to_keep_existing()})` : ''}
           </label>
           <input
             id="nav-password"
@@ -202,7 +215,7 @@
             disabled={navTesting || !navUrl || !navUsername || !navPassword}
             class="rounded border border-neutral-600 px-3 py-2 text-sm hover:bg-neutral-800 disabled:opacity-40"
           >
-            {navTesting ? 'Testing...' : 'Test connection'}
+            {navTesting ? m.testing() : m.test_connection()}
           </button>
 
           <button
@@ -210,7 +223,7 @@
             disabled={navSaving || !navUrl || !navUsername || !navPassword}
             class="rounded bg-white px-3 py-2 text-sm text-black hover:bg-neutral-200 disabled:opacity-40"
           >
-            {navSaving ? 'Saving...' : 'Save'}
+            {navSaving ? m.saving() : m.save()}
           </button>
 
           {#if hasExistingConfig}
@@ -219,7 +232,7 @@
               disabled={navDeleting}
               class="rounded border border-red-800 px-3 py-2 text-sm text-red-400 hover:bg-red-950 disabled:opacity-40"
             >
-              {navDeleting ? 'Removing...' : 'Remove'}
+              {navDeleting ? m.removing() : m.remove()}
             </button>
           {/if}
         </div>
@@ -227,8 +240,10 @@
     </div>
 
     <div>
-      <h2 class="mb-1 text-xl font-semibold">External Services</h2>
-      <p class="mb-4 text-sm text-neutral-400">Choose which services appear on album pages.</p>
+      <h2 class="mb-1 text-xl font-semibold">{m.external_services()}</h2>
+      <p class="mb-4 text-sm text-neutral-400">
+        {m.choose_which_services_appear_on_album_pages()}.
+      </p>
 
       <div class="max-w-md space-y-4">
         <div class="flex flex-wrap gap-2">
@@ -236,9 +251,11 @@
             <button
               type="button"
               onclick={() => toggleService(service.key)}
-              class="inline-flex cursor-pointer justify-center overflow-hidden rounded-md font-geist transition active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-zinc-900 px-3 py-1 text-sm {selectedServices.includes(service.key)
+              class="inline-flex cursor-pointer justify-center overflow-hidden rounded-md px-3 py-1 font-geist text-sm transition focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none active:scale-[0.97] dark:focus-visible:ring-offset-zinc-900 {selectedServices.includes(
+                service.key,
+              )
                 ? 'bg-emerald-600 text-white hover:bg-emerald-500 dark:bg-emerald-500 dark:hover:bg-emerald-400'
-                : 'bg-transparent text-zinc-700 ring-1 ring-inset ring-zinc-900/20 hover:bg-zinc-50 hover:ring-zinc-900/40 dark:bg-white/5 dark:text-zinc-400 dark:ring-white/15 dark:hover:bg-white/10 dark:hover:text-zinc-300 dark:hover:ring-white/30'}"
+                : 'bg-transparent text-zinc-700 ring-1 ring-zinc-900/20 ring-inset hover:bg-zinc-50 hover:ring-zinc-900/40 dark:bg-white/5 dark:text-zinc-400 dark:ring-white/15 dark:hover:bg-white/10 dark:hover:text-zinc-300 dark:hover:ring-white/30'}"
             >
               {service.label}
             </button>
@@ -258,7 +275,7 @@
           disabled={servicesSaving}
           class="rounded bg-white px-3 py-2 text-sm text-black hover:bg-neutral-200 disabled:opacity-40"
         >
-          {servicesSaving ? 'Saving...' : 'Save preferences'}
+          {servicesSaving ? m.saving() : m.save_preferences()}
         </button>
       </div>
     </div>

@@ -4,6 +4,7 @@
   import { trpc } from '$lib/trpc/client'
   import { Button, Input } from '$lib/components'
   import { TRPCClientError } from '@trpc/client'
+  import { m } from '$lib/paraglide/messages'
 
   let { data } = $props()
   const { album } = $derived(data)
@@ -38,7 +39,7 @@
       if (err instanceof TRPCClientError) {
         error = err.message
       } else {
-        error = 'An error occurred. Please try again.'
+        error = m.an_error_occurred()
       }
       loading = false
     }
@@ -54,7 +55,7 @@
 >
   <div class="w-full max-w-lg space-y-6">
     <div>
-      <h1 class="font-funnel text-4xl font-bold">Edit Album</h1>
+      <h1 class="font-funnel text-4xl font-bold capitalize">{m.edit_album()}</h1>
       <p class="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
         {album.title} — {album.artist}
       </p>
@@ -68,28 +69,28 @@
 
     <form onsubmit={handleSubmit} class="space-y-4">
       <Input.Root
-        label="Album Title"
+        label={m.album_title()}
         type="text"
         placeholder="e.g. Paranoid"
         bind:value={title}
         required
       />
       <Input.Root
-        label="Artist"
+        label={m.artist()}
         type="text"
         placeholder="e.g. Black Sabbath"
         bind:value={artist}
         required
       />
-      <Input.Root label="Release Date" type="date" bind:value={releaseDate} />
+      <Input.Root label={m.release_date()} type="date" bind:value={releaseDate} />
       <Input.Root
-        label="Album Artwork URL"
+        label={m.album_artwork_url()}
         type="url"
         placeholder="https://..."
         bind:value={coverUrl}
       />
       <Input.Root
-        label="MusicBrainz Release ID"
+        label={m.musicbrainz_release_id()}
         type="text"
         placeholder="e.g. 123e4567-e89b-12d3-a456-426614174000"
         bind:value={mbid}
@@ -97,7 +98,7 @@
 
       <div class="flex gap-3">
         <Button.Root type="submit" {loading} disabled={loading} size="lg" class="flex-1">
-          {loading ? 'Saving...' : 'Save Changes'}
+          {loading ? m.saving() : m.save_changes()}
         </Button.Root>
         <Button.Root
           type="button"
@@ -107,7 +108,7 @@
           onclick={() => goto(resolve(`/albums/${album.id}`))}
           disabled={loading}
         >
-          Cancel
+          {m.cancel()}
         </Button.Root>
       </div>
     </form>

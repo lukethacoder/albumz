@@ -4,6 +4,7 @@
   import { trpc } from '$lib/trpc/client'
   import { authStore } from '$lib/stores/auth.svelte'
   import { TRPCClientError } from '@trpc/client'
+  import { m } from '$lib/paraglide/messages'
 
   let email = $state('')
   let password = $state('')
@@ -17,7 +18,7 @@
     error = null
 
     if (password.length < 8) {
-      error = 'Password must be at least 8 characters long'
+      error = m.password_must_be_at_least_8_chars()
       loading = false
       return
     }
@@ -30,7 +31,7 @@
       })
 
       if (!data) {
-        error = 'Registration failed. Please try again.'
+        error = m.registration_failed()
         return
       }
 
@@ -38,9 +39,9 @@
       goto(resolve('/'))
     } catch (err) {
       if (err instanceof TRPCClientError) {
-        error = err.message || 'Registration failed. Email may already be in use.'
+        error = err.message || m.registration_failed_email_in_use()
       } else {
-        error = 'An error occurred. Please try again.'
+        error = m.an_error_occurred()
       }
       console.error('Registration error:', err)
     } finally {
@@ -56,14 +57,14 @@
 <div class="mx-auto flex min-h-screen max-w-md items-center justify-center px-4">
   <div class="w-full space-y-8">
     <div>
-      <h1 class="text-3xl font-bold">Create your account</h1>
+      <h1 class="text-3xl font-bold">{m.create_your_account()}</h1>
       <p class="mt-2 text-sm text-gray-600">
-        Already have an account?
+        {m.already_have_an_account()}
         <a
           href={resolve('/auth/login')}
           class="font-medium text-emerald-600 hover:text-emerald-500"
         >
-          Sign in
+          {m.sign_in()}
         </a>
       </p>
     </div>
@@ -77,7 +78,7 @@
 
       <div class="space-y-4">
         <div>
-          <label for="email" class="block text-sm font-medium text-gray-700"> Email address </label>
+          <label for="email" class="block text-sm font-medium text-gray-700">{m.email_address()}</label>
           <input
             id="email"
             name="email"
@@ -90,7 +91,7 @@
         </div>
 
         <div>
-          <label for="username" class="block text-sm font-medium text-gray-700"> Username </label>
+          <label for="username" class="block text-sm font-medium text-gray-700">{m.username()}</label>
           <input
             id="username"
             name="username"
@@ -103,7 +104,7 @@
         </div>
 
         <div>
-          <label for="password" class="block text-sm font-medium text-gray-700"> Password </label>
+          <label for="password" class="block text-sm font-medium text-gray-700">{m.password()}</label>
           <input
             id="password"
             name="password"
@@ -113,7 +114,7 @@
             bind:value={password}
             class="mt-1 block w-full rounded-md border border-gray-300 bg-transparent px-3 py-2 shadow-sm focus:border-emerald-500 focus:ring-emerald-500 focus:outline-none"
           />
-          <p class="mt-1 text-sm text-gray-500">Must be at least 8 characters</p>
+          <p class="mt-1 text-sm text-gray-500">{m.must_be_at_least_8_characters()}</p>
         </div>
       </div>
 
@@ -123,7 +124,7 @@
           disabled={loading}
           class="flex w-full justify-center rounded-md bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-emerald-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600 disabled:opacity-50"
         >
-          {loading ? 'Creating account...' : 'Create account'}
+          {loading ? m.creating_account() : m.create_account()}
         </button>
       </div>
     </form>

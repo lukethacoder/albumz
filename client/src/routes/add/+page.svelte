@@ -5,6 +5,7 @@
   import { Button, Input } from '$lib/components'
   import { TRPCClientError } from '@trpc/client'
   import { importStore } from '$lib/stores/import.svelte'
+  import { m } from '$lib/paraglide/messages'
 
   type Mode = 'url' | 'manual'
 
@@ -70,7 +71,7 @@
       if (err instanceof TRPCClientError) {
         error = err.message
       } else {
-        error = 'An error occurred. Please try again.'
+        error = m.an_error_occurred()
       }
       loading = false
     }
@@ -93,7 +94,7 @@
       if (err instanceof TRPCClientError) {
         error = err.message
       } else {
-        error = 'An error occurred. Please try again.'
+        error = m.an_error_occurred()
       }
     } finally {
       loading = false
@@ -109,7 +110,7 @@
   class="relative flex h-full w-full items-center justify-center px-8 py-12 lg:py-16 xl:py-20"
 >
   <div class="w-full max-w-lg space-y-6">
-    <h1 class="font-funnel text-4xl font-bold">Add Album</h1>
+    <h1 class="font-funnel text-4xl font-bold capitalize">{m.add_album()}</h1>
 
     <!-- Mode toggle — only shown when URL import is available -->
     {#if urlImportEnabled}
@@ -124,7 +125,7 @@
             ? 'bg-white text-zinc-900 shadow-xs dark:bg-zinc-800 dark:text-zinc-100'
             : 'text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-300'}"
         >
-          From URL
+          {m.from_url()}
         </button>
         <button
           type="button"
@@ -134,7 +135,7 @@
             ? 'bg-white text-zinc-900 shadow-xs dark:bg-zinc-800 dark:text-zinc-100'
             : 'text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-300'}"
         >
-          Manual Entry
+          {m.manual_entry()}
         </button>
       </div>
     {/if}
@@ -155,34 +156,34 @@
           required
         />
         <Button.Root type="submit" {loading} disabled={loading} size="lg" class="w-full">
-          {loading ? 'Importing...' : 'Import Album'}
+          {loading ? m.importing() : m.import_album()}
         </Button.Root>
       </form>
     {:else}
       <form onsubmit={handleManualSubmit} class="space-y-4">
         <Input.Root
-          label="Album Title"
+          label={m.album_title()}
           type="text"
           placeholder="e.g. Paranoid"
           bind:value={title}
           required
         />
         <Input.Root
-          label="Artist"
+          label={m.artist()}
           type="text"
           placeholder="e.g. Black Sabbath"
           bind:value={artist}
           required
         />
-        <Input.Root label="Release Date" type="date" bind:value={releaseDate} />
+        <Input.Root label={m.release_date()} type="date" bind:value={releaseDate} />
         <Input.Root
-          label="Album Artwork URL"
+          label={m.album_artwork_url()}
           type="url"
           placeholder="https://..."
           bind:value={coverUrl}
         />
         <Button.Root type="submit" {loading} disabled={loading} size="lg" class="w-full">
-          {loading ? 'Adding...' : 'Add Album'}
+          {loading ? m.adding() : m.add_album()}
         </Button.Root>
       </form>
     {/if}

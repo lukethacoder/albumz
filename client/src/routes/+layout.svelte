@@ -1,6 +1,6 @@
 <script lang="ts">
   import { page } from '$app/state'
-  import { getLocale, locales, localizeHref, setLocale } from '$lib/paraglide/runtime'
+  import { locales, localizeHref } from '$lib/paraglide/runtime'
   import { onMount } from 'svelte'
   import { goto } from '$app/navigation'
   import './layout.css'
@@ -35,16 +35,6 @@
   >
 
   <div class="flex items-center gap-2">
-    <select
-      class="bg-transparent"
-      value={getLocale()}
-      onchange={(event) => {
-        setLocale(event.target.value ?? 'en')
-      }}
-    >
-      <option value="en">en</option>
-      <option value="nl">nl</option>
-    </select>
     {#if authStore.isAuthenticated}
       <Button.Root variant="outline" href="/add">
         {m.add_album()}

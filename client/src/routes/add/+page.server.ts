@@ -4,18 +4,17 @@ import { resolve } from '$app/paths'
 import { redirect } from '@sveltejs/kit'
 import { TRPCClientError } from '@trpc/client'
 
-export const load: PageServerLoad = async ({ params, cookies }) => {
+export const load: PageServerLoad = async ({ cookies }) => {
   const token = cookies.get('access_token')
   const trpc = createServerTRPCClient(token)
 
   try {
-    const [album, enabledServices] = await Promise.all([
-      trpc.albums.getById.query({ id: params.id }),
+    const [enabledServices, availableServices] = await Promise.all([
       trpc.navidrome.getEnabledServices.query(),
+      trpc.navidrome.getAvailableServices.query(),
     ])
-    return { album, enabledServices }
+    return { enabledServices, availableServices }
   } catch (error) {
-    console.log('error ', error)
     if (error instanceof TRPCClientError && error.data?.code === 'UNAUTHORIZED') {
       throw redirect(307, resolve('/auth/login'))
     }

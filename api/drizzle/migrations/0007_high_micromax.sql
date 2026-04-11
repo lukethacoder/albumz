@@ -1,0 +1,1 @@
+ALTER TABLE "albums" ADD COLUMN "url_last_fm" text;

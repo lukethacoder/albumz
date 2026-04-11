@@ -8,6 +8,7 @@ export const createAlbumSchema = z.object({
   releaseDate: z.string().datetime().or(z.string().date()).optional(),
   description: z.string().optional(),
   coverUrl: z.string().url().max(500).optional(),
+  mbid: z.string().uuid().optional(),
 })
 
 // Zod schema for updating an album (all fields optional)
@@ -18,6 +19,14 @@ export const updateAlbumSchema = z.object({
   releaseDate: z.string().datetime().or(z.string().date()).optional(),
   description: z.string().optional(),
   coverUrl: z.string().url().max(500).optional(),
+  mbid: z.string().uuid().optional(),
+  urlLastFm: z.string().url().optional(),
+  urlSpotify: z.string().url().optional(),
+  urlAppleMusic: z.string().url().optional(),
+  urlYoutube: z.string().url().optional(),
+  urlYoutubeMusic: z.string().url().optional(),
+  urlRateYourMusic: z.string().url().optional(),
+  urlNavidrome: z.string().optional(),
   dateCompleted: z.string().datetime().or(z.date()).nullable().optional(),
 })
 
@@ -29,7 +38,12 @@ export const albumFilterSchema = z.object({
   maxYear: z.number().int().min(1900).max(2100).optional(),
   showCompleted: z.boolean().optional().default(false),
   sortBy: z
-    .enum(['dateAddedDesc', 'dateAddedAsc', 'releaseDateDesc', 'releaseDateAsc'])
+    .enum([
+      'dateAddedDesc',
+      'dateAddedAsc',
+      'releaseDateDesc',
+      'releaseDateAsc',
+    ])
     .optional()
     .default('dateAddedDesc'),
 })

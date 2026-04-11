@@ -1,7 +1,11 @@
 import { TRPCError } from '@trpc/server'
 import { Album } from '../db/schema/album.schema'
 import { AlbumRepository } from '../repositories/album.repository'
-import type { CreateAlbumInput, UpdateAlbumInput, AlbumFilter } from '../schemas/album.schema'
+import type {
+  CreateAlbumInput,
+  UpdateAlbumInput,
+  AlbumFilter,
+} from '../schemas/album.schema'
 
 export class AlbumService {
   constructor(private readonly albumRepository: AlbumRepository) {}

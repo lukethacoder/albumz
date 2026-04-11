@@ -23,6 +23,16 @@ export const albums = pgTable('albums', {
   dateCompleted: timestamp('date_completed'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  // Musicbrainz Album Id
+  mbid: text('mbid'),
+  // External URLs
+  urlLastFm: text('url_last_fm'),
+  urlSpotify: text('url_spotify'),
+  urlAppleMusic: text('url_apple_music'),
+  urlYoutube: text('url_youtube'),
+  urlYoutubeMusic: text('url_youtube_music'),
+  urlRateYourMusic: text('url_rate_your_music'),
+  urlNavidrome: text('url_navidrome'),
 })
 
 export const albumsRelations = relations(albums, ({ one }) => ({

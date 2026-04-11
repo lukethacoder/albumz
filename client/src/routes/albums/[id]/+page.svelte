@@ -2,15 +2,29 @@
   import { Button } from '$lib/components'
   import { m } from '$lib/paraglide/messages.js'
   import { cn, getRelativeTime } from '$lib/utils'
-  import { Check } from '@lucide/svelte'
+  import { Check, RefreshCw } from '@lucide/svelte'
   import Disc from '@lucide/svelte/icons/disc-3'
   import { albumsStore } from '$lib/stores/albums.svelte'
+  import { trpc } from '$lib/trpc/client'
+  import { invalidateAll } from '$app/navigation'
+  import { TRPCClientError } from '@trpc/client'
 
-  import { siMusicbrainz, siSpotify, siYoutube, type SimpleIcon } from 'simple-icons'
+  import {
+    siApplemusic,
+    siLastdotfm,
+    siMusicbrainz,
+    siSpotify,
+    siYoutube,
+    type SimpleIcon,
+  } from 'simple-icons'
 
   // albums from server load
   let { data } = $props()
-  let { album } = $derived(data)
+  let { album, enabledServices } = $derived(data)
+
+  // Empty array means all services are enabled (default state)
+  const isServiceEnabled = (key: string) =>
+    enabledServices.length === 0 || enabledServices.includes(key)
 
   // Check if album is completed based on dateCompleted field
   let isComplete = $derived(!!album.dateCompleted)
@@ -19,9 +33,11 @@
   let isLoading = $derived(albumsStore.isLoading(album.id))
   let error = $derived(albumsStore.getError(album.id))
 
+  let refreshing = $state(false)
+  let refreshError = $state<string | null>(null)
+
   async function deleteAlbum() {
     if (album) {
-      // Delete and redirect to home page after success
       await albumsStore.deleteWithConfirm(album.id, album.title, true)
     }
   }
@@ -30,37 +46,66 @@
     await albumsStore.toggleComplete(album.id, isComplete)
   }
 
-  // SimpleIcon OR iconUrl
-  // TODO: feature enable services
-  // - backend should run an async job to find the "exact match"
-  // - until the backend runs, use the `?s=${artist} ${album}` for services that support search
-  const links: { icon?: SimpleIcon; iconUrl?: string; label: string; url: string }[] = [
-    {
-      icon: siSpotify,
-      label: 'Spotify',
-      url: 'https://open.spotify.com/',
-    },
-    {
-      icon: siYoutube,
-      label: 'Youtube',
-      url: 'https://open.youtube.com/',
-    },
-    {
-      icon: siMusicbrainz,
-      label: 'MusicBrainz',
-      url: 'musicbrainz',
-    },
-    {
-      iconUrl: 'https://upload.wikimedia.org/wikipedia/commons/d/d0/Rate_Your_Music_logo.svg',
-      label: 'Rate your music',
-      url: 'rym',
-    },
-    {
-      iconUrl: 'https://cdn.jsdelivr.net/gh/selfhst/icons@main/svg/navidrome.svg',
-      label: 'Navidrome',
-      url: 'navidrome',
-    },
-  ]
+  async function handleRefreshMetadata() {
+    refreshing = true
+    refreshError = null
+    try {
+      await trpc.albums.refreshMetadata.mutate({ id: album.id })
+      await invalidateAll()
+    } catch (err) {
+      if (err instanceof TRPCClientError) {
+        refreshError = err.message
+      } else {
+        refreshError = 'Failed to refresh metadata'
+      }
+    } finally {
+      refreshing = false
+    }
+  }
+
+  type Link = { icon?: SimpleIcon; iconUrl?: string; label: string; url: string }
+
+  const links = $derived(
+    [
+      album.urlLastFm && isServiceEnabled('lastfm')
+        ? { icon: siLastdotfm, label: 'Last.fm', url: album.urlLastFm }
+        : null,
+      album.urlSpotify && isServiceEnabled('spotify')
+        ? { icon: siSpotify, label: 'Spotify', url: album.urlSpotify }
+        : null,
+      album.urlAppleMusic && isServiceEnabled('applemusic')
+        ? { icon: siApplemusic, label: 'Apple Music', url: album.urlAppleMusic }
+        : null,
+      (album.urlYoutubeMusic || album.urlYoutube) && isServiceEnabled('youtube')
+        ? {
+            icon: siYoutube,
+            label: 'YouTube',
+            url: (album.urlYoutubeMusic || album.urlYoutube)!,
+          }
+        : null,
+      album.mbid && isServiceEnabled('musicbrainz')
+        ? {
+            icon: siMusicbrainz,
+            label: 'MusicBrainz',
+            url: `https://musicbrainz.org/release/${album.mbid}`,
+          }
+        : null,
+      album.urlRateYourMusic && isServiceEnabled('rateyourmusic')
+        ? {
+            iconUrl: 'https://upload.wikimedia.org/wikipedia/commons/d/d0/Rate_Your_Music_logo.svg',
+            label: 'Rate Your Music',
+            url: album.urlRateYourMusic,
+          }
+        : null,
+      album.urlNavidrome && isServiceEnabled('navidrome')
+        ? {
+            iconUrl: 'https://cdn.jsdelivr.net/gh/selfhst/icons@main/svg/navidrome.svg',
+            label: 'Navidrome',
+            url: album.urlNavidrome,
+          }
+        : null,
+    ].filter((l): l is Link => l !== null),
+  )
 </script>
 
 <svelte:head>
@@ -80,7 +125,7 @@
             <span class="absolute h-full w-full opacity-50 blur-lg">
               <img src={album?.coverUrl} alt={`Album artwork for ${album.title}`} />
             </span>
-            <span class="relative z-10 mx-auto p-2">
+            <span class="relative z-10 mx-auto w-full p-2">
               <img
                 src={album?.coverUrl}
                 alt={`Album artwork for ${album.title}`}
@@ -106,13 +151,13 @@
           </h2>
         </div>
         <div class="mt-4 flex flex-col gap-2">
-          {#if error}
+          {#if error || refreshError}
             <div class="rounded-md bg-red-50 p-3">
-              <p class="text-sm text-red-800">{error}</p>
+              <p class="text-sm text-red-800">{error ?? refreshError}</p>
             </div>
           {/if}
 
-          <div class="flex gap-1">
+          <div class="flex justify-start gap-1">
             <Button.Root
               variant="outline"
               theme={isComplete ? 'brand' : 'neutral'}
@@ -131,10 +176,24 @@
               variant="ghost"
               theme="negative"
               class="capitalize"
-              onclick={deleteAlbum}
               disabled={isLoading}
+              onclick={deleteAlbum}
             >
               {isLoading ? 'Processing...' : m.remove()}
+            </Button.Root>
+            <Button.Root
+              variant="ghost"
+              theme="neutral"
+              aria-label={refreshing ? 'Refreshing...' : 'Refresh Metadata'}
+              disabled={refreshing}
+              loading={refreshing}
+              onclick={handleRefreshMetadata}
+            >
+              {#snippet iconLeft()}
+                {#if !refreshing}
+                  <RefreshCw />
+                {/if}
+              {/snippet}
             </Button.Root>
           </div>
         </div>
@@ -146,33 +205,33 @@
             </time>
           </h2>
         </div>
-        <ul class="flex gap-3">
-          {#each links as link (link.url)}
-            <li>
-              <!-- eslint-disable-next-line svelte/no-navigation-without-resolve -->
-              <a
-                href={link.url}
-                aria-label={link.label}
-                target="_blank"
-                class={cn(
-                  'flex h-8 w-8 fill-neutral-500 p-1 opacity-50 transition hover:opacity-100',
-                  {
-                    grayscale: link.iconUrl,
-                  },
-                )}
-              >
-                {#if link.icon}
-                  <svg role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <title>{link.label}</title>
-                    <path d={link.icon.path} />
-                  </svg>
-                {:else if link.iconUrl}
-                  <img src={link.iconUrl} alt={link.label} />
-                {/if}
-              </a>
-            </li>
-          {/each}
-        </ul>
+        {#if links.length > 0}
+          <ul class="flex gap-3">
+            {#each links as link (link.url)}
+              <li>
+                <a
+                  href={link.url}
+                  aria-label={link.label}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class={cn(
+                    'flex h-8 w-8 fill-neutral-500 p-1 opacity-50 transition hover:opacity-100',
+                    { grayscale: !!link.iconUrl },
+                  )}
+                >
+                  {#if link.icon}
+                    <svg role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                      <title>{link.label}</title>
+                      <path d={link.icon.path} />
+                    </svg>
+                  {:else if link.iconUrl}
+                    <img src={link.iconUrl} alt={link.label} />
+                  {/if}
+                </a>
+              </li>
+            {/each}
+          </ul>
+        {/if}
       </div>
     {/if}
   </div>

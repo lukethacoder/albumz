@@ -1,0 +1,1 @@
+ALTER TABLE "albums" ADD COLUMN "url_apple_music" text;

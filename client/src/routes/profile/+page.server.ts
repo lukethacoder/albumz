@@ -9,8 +9,13 @@ export const load: PageServerLoad = async ({ cookies }) => {
   const trpc = createServerTRPCClient(token)
 
   try {
-    const user = await trpc.auth.profile.query()
-    return { user }
+    const [user, navidromeConfig, enabledServices, availableServices] = await Promise.all([
+      trpc.auth.profile.query(),
+      trpc.navidrome.getConfig.query(),
+      trpc.navidrome.getEnabledServices.query(),
+      trpc.navidrome.getAvailableServices.query(),
+    ])
+    return { user, navidromeConfig, enabledServices, availableServices }
   } catch (error) {
     console.log('error ', error)
     if (error instanceof TRPCClientError && error.data?.code === 'UNAUTHORIZED') {

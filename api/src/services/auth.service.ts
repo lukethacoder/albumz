@@ -3,7 +3,6 @@ import { UserRepository } from '../repositories/user.repository'
 import { PasswordService } from './password.service'
 import type { RegisterInput, AuthResponse } from '../schemas/auth.schema'
 import type { User } from '../db/schema'
-import { ENV } from '../env'
 
 export class AuthService {
   constructor(

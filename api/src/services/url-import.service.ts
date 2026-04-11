@@ -1,0 +1,391 @@
+import type { CreateAlbumInput } from '../schemas/album.schema'
+import type { NavidromeConfig } from './navidrome.service'
+import { fetchNavidromeAlbumUrl } from './navidrome.service'
+
+export type AlbumMetadata = Pick<
+  CreateAlbumInput,
+  'title' | 'artist' | 'releaseDate' | 'coverUrl' | 'mbid'
+>
+
+type UrlKind =
+  | 'spotify_album'
+  | 'spotify_track'
+  | 'spotify_playlist'
+  | 'youtube'
+  | 'unsupported'
+
+export function parseUrl(url: string): { kind: UrlKind; id: string } {
+  const spotifyAlbum = url.match(/open\.spotify\.com\/album\/([A-Za-z0-9]+)/)
+  if (spotifyAlbum) return { kind: 'spotify_album', id: spotifyAlbum[1] }
+
+  const spotifyTrack = url.match(/open\.spotify\.com\/track\/([A-Za-z0-9]+)/)
+  if (spotifyTrack) return { kind: 'spotify_track', id: spotifyTrack[1] }
+
+  const spotifyPlaylist = url.match(
+    /open\.spotify\.com\/playlist\/([A-Za-z0-9]+)/,
+  )
+  if (spotifyPlaylist)
+    return { kind: 'spotify_playlist', id: spotifyPlaylist[1] }
+
+  const youtube = url.match(
+    /(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|v\/))([A-Za-z0-9_-]+)/,
+  )
+  if (youtube) return { kind: 'youtube', id: youtube[1] }
+
+  return { kind: 'unsupported', id: '' }
+}
+
+// Spotify token cache — module-level singleton
+let spotifyTokenCache: { token: string; expiresAt: number } | null = null
+
+async function getSpotifyToken(): Promise<string> {
+  const clientId = process.env.SPOTIFY_CLIENT_ID
+  const clientSecret = process.env.SPOTIFY_CLIENT_SECRET
+
+  if (!clientId || !clientSecret) {
+    throw new Error(
+      'Spotify credentials not configured. Set SPOTIFY_CLIENT_ID and SPOTIFY_CLIENT_SECRET.',
+    )
+  }
+
+  if (spotifyTokenCache && Date.now() < spotifyTokenCache.expiresAt) {
+    return spotifyTokenCache.token
+  }
+
+  const res = await fetch('https://accounts.spotify.com/api/token', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+      Authorization: `Basic ${Buffer.from(`${clientId}:${clientSecret}`).toString('base64')}`,
+    },
+    body: 'grant_type=client_credentials',
+  })
+
+  if (!res.ok) throw new Error('Failed to authenticate with Spotify')
+
+  const data = (await res.json()) as {
+    access_token: string
+    expires_in: number
+  }
+  spotifyTokenCache = {
+    token: data.access_token,
+    expiresAt: Date.now() + (data.expires_in - 60) * 1000,
+  }
+  return spotifyTokenCache.token
+}
+
+async function fetchSpotifyAlbum(albumId: string): Promise<AlbumMetadata> {
+  const token = await getSpotifyToken()
+  const res = await fetch(`https://api.spotify.com/v1/albums/${albumId}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  })
+  if (!res.ok) throw new Error('Album not found on Spotify')
+
+  const data = (await res.json()) as {
+    name: string
+    artists: { name: string }[]
+    release_date: string
+    images: { url: string }[]
+  }
+
+  return {
+    title: data.name,
+    artist: data.artists.map((a) => a.name).join(', '),
+    releaseDate: data.release_date || undefined,
+    coverUrl: data.images[0]?.url,
+  }
+}
+
+async function fetchSpotifyTrack(trackId: string): Promise<AlbumMetadata> {
+  const token = await getSpotifyToken()
+  const res = await fetch(`https://api.spotify.com/v1/tracks/${trackId}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  })
+  if (!res.ok) throw new Error('Track not found on Spotify')
+
+  const data = (await res.json()) as {
+    album: {
+      name: string
+      artists: { name: string }[]
+      release_date: string
+      images: { url: string }[]
+    }
+  }
+
+  return {
+    title: data.album.name,
+    artist: data.album.artists.map((a) => a.name).join(', '),
+    releaseDate: data.album.release_date || undefined,
+    coverUrl: data.album.images[0]?.url,
+  }
+}
+
+async function fetchLastFmTrackInfo(
+  artist: string,
+  track: string,
+): Promise<
+  | { albumTitle: string; coverUrl?: string; mbid?: string; urlLastFm?: string }
+  | undefined
+> {
+  const apiKey = process.env.LASTFM_API_KEY
+  if (!apiKey) return undefined
+
+  try {
+    const url = `https://ws.audioscrobbler.com/2.0/?method=track.getinfo&api_key=${encodeURIComponent(apiKey)}&artist=${encodeURIComponent(artist)}&track=${encodeURIComponent(track)}&format=json`
+    const res = await fetch(url)
+    if (!res.ok) return undefined
+
+    const data = (await res.json()) as {
+      track?: {
+        album?: {
+          mbid?: string
+          title: string
+          url?: string
+          image?: Array<{ '#text': string; size: string }>
+        }
+      }
+    }
+
+    const album = data.track?.album
+    if (!album?.title) return undefined
+
+    const images = album.image ?? []
+    let coverUrl: string | undefined
+    for (const size of ['extralarge', 'large', 'medium', 'small']) {
+      const img = images.find((i) => i.size === size && i['#text'])
+      if (img?.['#text']) {
+        coverUrl = img['#text']
+        break
+      }
+    }
+
+    return {
+      albumTitle: album.title,
+      coverUrl,
+      mbid: album.mbid || undefined,
+      urlLastFm: album.url || undefined,
+    }
+  } catch {
+    return undefined
+  }
+}
+
+// Bracketed/parenthesized tags commonly added by YouTube uploaders that aren't part of the title
+const YOUTUBE_NOISE_RE =
+  /\s*[\[(]\s*(?:official(?:\s+(?:music\s+)?(?:video|audio|lyric\s+video|visualizer))?|lyric\s+video|lyrics|audio|visualizer|music\s+video|video|hd|hq|4k|1080p|720p|full\s+(?:album|video))\s*[\])]/gi
+
+function cleanYouTubeTitle(title: string): string {
+  return title.replace(YOUTUBE_NOISE_RE, '').trim()
+}
+
+async function fetchYouTubeMetadata(
+  url: string,
+  navidromeConfig?: NavidromeConfig,
+): Promise<AlbumMetadata> {
+  const oembedUrl = `https://www.youtube.com/oembed?url=${encodeURIComponent(url)}&format=json`
+  const res = await fetch(oembedUrl)
+  if (!res.ok) throw new Error('Video not found on YouTube')
+
+  const data = (await res.json()) as {
+    title: string
+    author_name: string
+    thumbnail_url?: string
+  }
+  const title = data.title ?? ''
+  const channelName = data.author_name ?? 'Unknown Artist'
+  const thumbnailUrl = data.thumbnail_url
+
+  // Try to parse "Artist - Track" or "Artist – Track"
+  const dashMatch = title.match(/^(.+?)\s+[-–]\s+(.+)$/)
+  if (dashMatch) {
+    const artist = dashMatch[1].trim()
+    const trackName = cleanYouTubeTitle(dashMatch[2].trim())
+
+    // Try Navidrome first — it can resolve the album name and release date from a track name
+    if (navidromeConfig) {
+      const navResult = await fetchNavidromeAlbumUrl(
+        artist,
+        trackName,
+        navidromeConfig,
+      )
+      if (navResult?.albumTitle) {
+        return {
+          title: navResult.albumTitle,
+          artist: navResult.artist ?? artist,
+          releaseDate: navResult.releaseDate,
+          coverUrl: thumbnailUrl,
+          mbid: navResult.mbid,
+        }
+      }
+    }
+
+    // Fall back to Last.fm
+    const trackInfo = await fetchLastFmTrackInfo(artist, trackName)
+    if (trackInfo) {
+      return {
+        title: trackInfo.albumTitle,
+        artist,
+        coverUrl: trackInfo.coverUrl ?? thumbnailUrl,
+        mbid: trackInfo.mbid,
+      }
+    }
+
+    // Last resort — use the parsed track name as the title
+    return { title: trackName, artist, coverUrl: thumbnailUrl }
+  }
+
+  return {
+    title: cleanYouTubeTitle(title),
+    artist: channelName,
+    coverUrl: thumbnailUrl,
+  }
+}
+
+export async function fetchSpotifyPlaylistAlbums(
+  playlistId: string,
+): Promise<AlbumMetadata[]> {
+  const token = await getSpotifyToken()
+  const seen = new Set<string>()
+  const albums: AlbumMetadata[] = []
+
+  type TrackPage = {
+    items: Array<{
+      track: {
+        album: {
+          id: string
+          name: string
+          artists: { name: string }[]
+          release_date: string
+          images: { url: string }[]
+        }
+      } | null
+    }>
+    next: string | null
+  }
+
+  let nextUrl: string | null =
+    `https://api.spotify.com/v1/playlists/${playlistId}/tracks` +
+    `?limit=100&fields=next,items(track(album(id,name,artists,release_date,images)))`
+
+  while (nextUrl) {
+    const res = await fetch(nextUrl, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+    if (!res.ok) throw new Error('Playlist not found on Spotify')
+
+    const page = (await res.json()) as TrackPage
+
+    for (const item of page.items) {
+      const album = item.track?.album
+      if (!album || seen.has(album.id)) continue
+      seen.add(album.id)
+      albums.push({
+        title: album.name,
+        artist: album.artists.map((a) => a.name).join(', '),
+        releaseDate: album.release_date || undefined,
+        coverUrl: album.images[0]?.url,
+      })
+    }
+
+    nextUrl = page.next
+  }
+
+  return albums
+}
+
+export async function fetchMetadata(
+  url: string,
+  navidromeConfig?: NavidromeConfig,
+): Promise<AlbumMetadata> {
+  const { kind, id } = parseUrl(url)
+
+  switch (kind) {
+    case 'spotify_album':
+      return fetchSpotifyAlbum(id)
+    case 'spotify_track':
+      return fetchSpotifyTrack(id)
+    case 'youtube':
+      return fetchYouTubeMetadata(url, navidromeConfig)
+    default:
+      throw new Error(
+        'Unsupported URL. Please provide a Spotify album/track or YouTube URL.',
+      )
+  }
+}
+
+export async function fetchCoverArtFromMbid(
+  mbid: string,
+): Promise<string | undefined> {
+  try {
+    const res = await fetch(`https://coverartarchive.org/release/${mbid}`, {
+      headers: { Accept: 'application/json' },
+    })
+    if (!res.ok) return undefined
+
+    const data = (await res.json()) as {
+      images?: Array<{
+        front: boolean
+        approved: boolean
+        image: string
+        thumbnails: { '1200'?: string; large?: string; '500'?: string }
+      }>
+    }
+
+    const front =
+      data.images?.find((img) => img.front && img.approved) ??
+      data.images?.find((img) => img.front) ??
+      data.images?.[0]
+
+    if (!front) return undefined
+    return (
+      front.thumbnails['1200'] ??
+      front.thumbnails.large ??
+      front.thumbnails['500'] ??
+      front.image
+    )
+  } catch {
+    return undefined
+  }
+}
+
+export async function fetchLastFmAlbumInfo(
+  artist: string,
+  album: string,
+): Promise<
+  { coverUrl?: string; mbid?: string; urlLastFm?: string } | undefined
+> {
+  const apiKey = process.env.LASTFM_API_KEY
+  if (!apiKey) return undefined
+
+  try {
+    const url = `https://ws.audioscrobbler.com/2.0/?method=album.getinfo&api_key=${encodeURIComponent(apiKey)}&artist=${encodeURIComponent(artist)}&album=${encodeURIComponent(album)}&format=json`
+    const res = await fetch(url)
+    if (!res.ok) return undefined
+
+    const data = (await res.json()) as {
+      album?: {
+        mbid?: string
+        url?: string
+        image?: Array<{ '#text': string; size: string }>
+      }
+    }
+
+    const images = data.album?.image ?? []
+    let coverUrl: string | undefined
+    for (const size of ['extralarge', 'large', 'medium', 'small']) {
+      const img = images.find((i) => i.size === size && i['#text'])
+      if (img?.['#text']) {
+        coverUrl = img['#text']
+        break
+      }
+    }
+
+    return {
+      coverUrl,
+      mbid: data.album?.mbid || undefined,
+      urlLastFm: data.album?.url || undefined,
+    }
+  } catch {
+    return undefined
+  }
+}

@@ -5,9 +5,10 @@
   import { goto } from '$app/navigation'
   import './layout.css'
   import favicon from '$lib/assets/favicon.svg'
-  import { Button } from '$lib/components'
+  import { Button, ImportStatus } from '$lib/components'
   import { Plus, LogOut, User } from '@lucide/svelte'
   import { authStore } from '$lib/stores/auth.svelte'
+  import { importStore } from '$lib/stores/import.svelte'
   import { m } from '$lib/paraglide/messages'
   import { resolve } from '$app/paths'
 
@@ -16,11 +17,9 @@
   onMount(() => {
     // Restore session on app load
     authStore.restoreSession()
+    // Resume any in-progress import jobs from a previous session
+    importStore.restore()
   })
-
-  function handleAddAlbum() {
-    // TODO: add new album modal/wizard
-  }
 
   function handleLogout() {
     authStore.clearAuth()
@@ -47,7 +46,7 @@
       <option value="nl">nl</option>
     </select>
     {#if authStore.isAuthenticated}
-      <Button.Root variant="outline" onclick={handleAddAlbum}>
+      <Button.Root variant="outline" href="/add">
         {m.add_album()}
         {#snippet iconLeft()}
           <Plus />
@@ -75,6 +74,8 @@
 </nav>
 
 {@render children()}
+
+<ImportStatus.Root />
 
 <div style="display:none">
   {#each locales as locale (locale)}

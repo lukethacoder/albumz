@@ -136,18 +136,18 @@
 
       <div class="space-y-4">
         <div>
-          <label class="block text-sm font-medium">{m.user_id()}</label>
+          <p class="block text-sm font-medium">{m.user_id()}</p>
           <p class="mt-1 text-sm">{user.id}</p>
         </div>
 
         <div>
-          <label class="block text-sm font-medium">{m.email()}</label>
+          <p class="block text-sm font-medium">{m.email()}</p>
           <p class="mt-1 text-sm">{user.email}</p>
         </div>
 
         {#if user.username}
           <div>
-            <label class="block text-sm font-medium">{m.username()}</label>
+            <p class="block text-sm font-medium">{m.username()}</p>
             <p class="mt-1 text-sm">{user.username}</p>
           </div>
         {/if}

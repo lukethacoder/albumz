@@ -4,13 +4,12 @@ import { count, eq } from 'drizzle-orm'
 import * as schema from './schema'
 import { NodePgDatabase } from 'drizzle-orm/node-postgres'
 import * as bcrypt from 'bcrypt'
-import type { Album } from './schema'
 
 type DbType = NodePgDatabase<typeof schema> & {
   $client: Pool
 }
 
-const ALBUMS_MOCK_DATA: Omit<Album, 'id' | 'userId' | 'description'>[] = [
+const ALBUMS_MOCK_DATA = [
   {
     title: 'The New Flesh',
     artist: 'Sylosis',

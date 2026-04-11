@@ -8,14 +8,6 @@ import { fastifyTRPCPlugin } from '@trpc/server/adapters/fastify'
 import { appRouter } from './trpc/root'
 import { createContext } from './trpc/context'
 import { pgPool } from './db/database'
-import type { User } from './db/schema'
-
-// Extend Fastify types for JWT
-declare module 'fastify' {
-  interface FastifyRequest {
-    user?: User
-  }
-}
 
 async function main() {
   const server = Fastify({

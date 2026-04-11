@@ -40,7 +40,7 @@ export class AlbumRepository {
     }
 
     // Build query
-    let query = this.db.select().from(albums).where(and(...conditions))
+    let query = this.db.select().from(albums).where(and(...conditions)).$dynamic()
 
     // Apply sorting
     const sortBy = filters?.sortBy || 'dateAddedDesc'
@@ -92,9 +92,14 @@ export class AlbumRepository {
     userId: string,
     data: UpdateAlbumInput,
   ): Promise<Album | undefined> {
+    const { dateCompleted, ...rest } = data
     const [album] = await this.db
       .update(albums)
-      .set({ ...data, updatedAt: new Date() })
+      .set({
+        ...rest,
+        dateCompleted: dateCompleted != null ? new Date(dateCompleted) : dateCompleted,
+        updatedAt: new Date(),
+      })
       .where(and(eq(albums.id, id), eq(albums.userId, userId)))
       .returning()
 

@@ -2,7 +2,7 @@
   import { Button } from '$lib/components'
   import { m } from '$lib/paraglide/messages.js'
   import { cn, getRelativeTime } from '$lib/utils'
-  import { Check, RefreshCw } from '@lucide/svelte'
+  import { Check, RefreshCw, Pencil } from '@lucide/svelte'
   import Disc from '@lucide/svelte/icons/disc-3'
   import { albumsStore } from '$lib/stores/albums.svelte'
   import { trpc } from '$lib/trpc/client'
@@ -193,6 +193,16 @@
                 {#if !refreshing}
                   <RefreshCw />
                 {/if}
+              {/snippet}
+            </Button.Root>
+            <Button.Root
+              variant="ghost"
+              theme="neutral"
+              aria-label="Edit metadata"
+              href="/albums/{album.id}/edit"
+            >
+              {#snippet iconLeft()}
+                <Pencil />
               {/snippet}
             </Button.Root>
           </div>

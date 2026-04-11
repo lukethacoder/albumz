@@ -160,7 +160,9 @@
         triggerProps={{ class: 'w-24' }}
         value={getLocale()}
         items={locales.map((l) => ({ value: l, label: l }))}
-        onchange={(event) => setLocale(event.target.value ?? 'en')}
+        onValueChange={(v) => {
+          setLocale(v ?? 'en')
+        }}
       />
     </div>
 

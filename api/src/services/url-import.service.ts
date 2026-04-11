@@ -11,6 +11,7 @@ type UrlKind =
   | 'spotify_album'
   | 'spotify_track'
   | 'spotify_playlist'
+  | 'apple_music'
   | 'youtube'
   | 'unsupported'
 
@@ -26,6 +27,10 @@ export function parseUrl(url: string): { kind: UrlKind; id: string } {
   )
   if (spotifyPlaylist)
     return { kind: 'spotify_playlist', id: spotifyPlaylist[1] }
+
+  // music.apple.com/{country}/album/{slug}/{id} or {id}?i={track-id}
+  const appleMusic = url.match(/music\.apple\.com\/[^/]+\/album\/[^/]*\/(\d+)/)
+  if (appleMusic) return { kind: 'apple_music', id: appleMusic[1] }
 
   const youtube = url.match(
     /(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|v\/))([A-Za-z0-9_-]+)/,
@@ -170,6 +175,38 @@ async function fetchLastFmTrackInfo(
   }
 }
 
+async function fetchAppleMusicAlbum(albumId: string): Promise<AlbumMetadata> {
+  const res = await fetch(
+    `https://itunes.apple.com/lookup?id=${albumId}&entity=album`,
+  )
+  if (!res.ok) throw new Error('Album not found on Apple Music')
+
+  const data = (await res.json()) as {
+    results?: Array<{
+      wrapperType: string
+      collectionName: string
+      artistName: string
+      releaseDate?: string
+      artworkUrl100?: string
+    }>
+  }
+
+  const album = data.results?.find((r) => r.wrapperType === 'collection')
+  if (!album) throw new Error('Album not found on Apple Music')
+
+  // artworkUrl100 can be upscaled by replacing the size segment
+  const coverUrl = album.artworkUrl100?.replace('100x100bb', '600x600bb')
+
+  return {
+    title: album.collectionName,
+    artist: album.artistName,
+    releaseDate: album.releaseDate
+      ? album.releaseDate.split('T')[0]
+      : undefined,
+    coverUrl,
+  }
+}
+
 // Bracketed/parenthesized tags commonly added by YouTube uploaders that aren't part of the title
 const YOUTUBE_NOISE_RE =
   /\s*[\[(]\s*(?:official(?:\s+(?:music\s+)?(?:video|audio|lyric\s+video|visualizer))?|lyric\s+video|lyrics|audio|visualizer|music\s+video|video|hd|hq|4k|1080p|720p|full\s+(?:album|video))\s*[\])]/gi
@@ -304,6 +341,8 @@ export async function fetchMetadata(
       return fetchSpotifyAlbum(id)
     case 'spotify_track':
       return fetchSpotifyTrack(id)
+    case 'apple_music':
+      return fetchAppleMusicAlbum(id)
     case 'youtube':
       return fetchYouTubeMetadata(url, navidromeConfig)
     default:

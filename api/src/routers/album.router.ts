@@ -255,12 +255,17 @@ export const albumRouter = router({
         throw new TRPCError({
           code: 'BAD_REQUEST',
           message:
-            'Unsupported URL. Please provide a Spotify album/track or YouTube URL.',
+            'Unsupported URL. Please provide a Spotify, Apple Music, or YouTube URL.',
         })
       }
 
       // Check the service for this URL is enabled
-      const urlService = kind === 'youtube' ? 'youtube' : 'spotify'
+      const urlService =
+        kind === 'youtube'
+          ? 'youtube'
+          : kind === 'apple_music'
+            ? 'applemusic'
+            : 'spotify'
       const [configRow] = await ctx.db
         .select({ enabledExternalServices: userConfig.enabledExternalServices })
         .from(userConfig)

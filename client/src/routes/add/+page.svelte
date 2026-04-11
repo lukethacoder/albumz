@@ -16,22 +16,27 @@
 
   // A service is usable only if it's both available (credentials configured) and enabled by user
   const spotifyEnabled = $derived(isAvailable('spotify') && isEnabled('spotify'))
+  const appleMusicEnabled = $derived(isAvailable('applemusic') && isEnabled('applemusic'))
   const youtubeEnabled = $derived(isAvailable('youtube') && isEnabled('youtube'))
-  const urlImportEnabled = $derived(spotifyEnabled || youtubeEnabled)
+  const urlImportEnabled = $derived(spotifyEnabled || appleMusicEnabled || youtubeEnabled)
 
   const urlLabel = $derived(
-    spotifyEnabled && youtubeEnabled
-      ? 'Spotify or YouTube URL'
-      : spotifyEnabled
-        ? 'Spotify URL'
-        : 'YouTube URL',
+    [
+      spotifyEnabled && 'Spotify',
+      appleMusicEnabled && 'Apple Music',
+      youtubeEnabled && 'YouTube',
+    ]
+      .filter(Boolean)
+      .join(' or ') + ' URL',
   )
   const urlPlaceholder = $derived(
-    spotifyEnabled && youtubeEnabled
-      ? 'https://open.spotify.com/album/... or https://youtu.be/...'
-      : spotifyEnabled
-        ? 'https://open.spotify.com/album/...'
-        : 'https://youtu.be/...',
+    [
+      spotifyEnabled && 'https://open.spotify.com/album/...',
+      appleMusicEnabled && 'https://music.apple.com/...',
+      youtubeEnabled && 'https://youtu.be/...',
+    ]
+      .filter(Boolean)
+      .join(' or '),
   )
 
   let mode = $state<Mode>(urlImportEnabled ? 'url' : 'manual')

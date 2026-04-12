@@ -1,6 +1,6 @@
 services:
   albumz:
-    image: ghcr.io/OWNER/albumz:latest
+    image: ghcr.io/lukethacoder/albumz:latest
     container_name: albumz
     restart: unless-stopped
     ports:

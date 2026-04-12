@@ -118,3 +118,23 @@ docker compose -f docker-compose.dev.yml up --build api
 1. Add/Edit the respective `./api/src/db/schema/` files
 2. run `npx drizzle-kit generate` from the `./api` folder
 3. restart the top level `pnpm dev` command (run `pnpm dev:down` before restarting)
+
+### Releasing and updating the Docker Image
+
+Where `0.1.0` is the release version
+
+```bash
+# tag the git commit
+git tag v0.1.0
+git push origin v0.1.0
+
+# Authenticate
+echo $(gh auth token) | docker login ghcr.io -u lukethacoder --password-stdin
+
+# Build & tag
+docker build -t ghcr.io/lukethacoder/albumz:0.1.0 -t ghcr.io/lukethacoder/albumz:latest .
+
+# Push
+docker push ghcr.io/lukethacoder/albumz:0.1.0
+docker push ghcr.io/lukethacoder/albumz:latest
+```

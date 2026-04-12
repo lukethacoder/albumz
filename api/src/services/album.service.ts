@@ -1,5 +1,5 @@
 import { TRPCError } from '@trpc/server'
-import { Album } from '../db/schema/album.schema'
+import type { Album } from '../db/schema/album.schema'
 import { AlbumRepository } from '../repositories/album.repository'
 import type {
   CreateAlbumInput,

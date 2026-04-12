@@ -7,6 +7,19 @@ export type AlbumMetadata = Pick<
   'title' | 'artist' | 'releaseDate' | 'coverUrl' | 'mbid'
 >
 
+/**
+ * Normalize external date strings to YYYY-MM-DD.
+ * Spotify (and others) return year-only ("2005") or year-month ("2005-01").
+ * PostgreSQL requires a full date.
+ */
+function normalizeDate(date: string | undefined): string | undefined {
+  if (!date) return undefined
+  const parts = date.split('-')
+  if (parts.length === 1) return `${parts[0]}-01-01`
+  if (parts.length === 2) return `${parts[0]}-${parts[1]}-01`
+  return date
+}
+
 type UrlKind =
   | 'spotify_album'
   | 'spotify_track'
@@ -96,7 +109,7 @@ async function fetchSpotifyAlbum(albumId: string): Promise<AlbumMetadata> {
   return {
     title: data.name,
     artist: data.artists.map((a) => a.name).join(', '),
-    releaseDate: data.release_date || undefined,
+    releaseDate: normalizeDate(data.release_date || undefined),
     coverUrl: data.images[0]?.url,
   }
 }
@@ -120,7 +133,7 @@ async function fetchSpotifyTrack(trackId: string): Promise<AlbumMetadata> {
   return {
     title: data.album.name,
     artist: data.album.artists.map((a) => a.name).join(', '),
-    releaseDate: data.album.release_date || undefined,
+    releaseDate: normalizeDate(data.album.release_date || undefined),
     coverUrl: data.album.images[0]?.url,
   }
 }
@@ -319,7 +332,7 @@ export async function fetchSpotifyPlaylistAlbums(
       albums.push({
         title: album.name,
         artist: album.artists.map((a) => a.name).join(', '),
-        releaseDate: album.release_date || undefined,
+        releaseDate: normalizeDate(album.release_date || undefined),
         coverUrl: album.images[0]?.url,
       })
     }

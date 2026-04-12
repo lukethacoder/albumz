@@ -21,7 +21,8 @@ import { enrichFromMusicBrainz } from '../services/musicbrainz.service'
 import { fetchNavidromeAlbumUrl } from '../services/navidrome.service'
 import { decrypt } from '../services/encryption.service'
 import { userConfig } from '../db/schema/navidrome.schema'
-import { db, Database } from '../db/database'
+import { db } from '../db/database'
+import type { Database } from '../db/database'
 
 function isEnabled(enabledServices: string[], key: string): boolean {
   return enabledServices.length === 0 || enabledServices.includes(key)

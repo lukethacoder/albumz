@@ -5,11 +5,11 @@
   import { Button } from '$lib/components'
   import { m } from '$lib/paraglide/messages'
   import { authStore } from '$lib/stores/auth.svelte'
-  import { ENV } from 'varlock/env'
+  import { dev } from '$app/environment'
   import { TRPCClientError } from '@trpc/client'
 
-  let email = $state(ENV.VARLOCK_ENV === 'development' ? 'admin@albumz.local' : '')
-  let password = $state(ENV.VARLOCK_ENV === 'development' ? 'password' : '')
+  let email = $state(dev ? 'admin@albumz.local' : '')
+  let password = $state(dev ? 'password' : '')
   let error = $state<string | null>(null)
   let loading = $state(false)
 

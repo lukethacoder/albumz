@@ -104,7 +104,7 @@
             url: album.urlNavidrome,
           }
         : null,
-    ].filter((l): l is Link => l !== null),
+    ].filter((l): l is NonNullable<typeof l> => l !== null),
   )
 </script>
 

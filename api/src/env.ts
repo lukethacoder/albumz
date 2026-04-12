@@ -1,3 +1,4 @@
+/// <reference path="../env.d.ts" />
 // Initialize varlock before any other imports
 // This MUST be imported at the top of main.ts before any modules
 import 'varlock/auto-load'

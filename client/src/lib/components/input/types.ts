@@ -1,6 +1,6 @@
 import type { HTMLInputAttributes, HTMLInputTypeAttribute } from 'svelte/elements'
 import type { Label } from 'bits-ui'
-import type { WithoutChildrenOrChild } from '$lib/types'
+import type { WithElementRef, WithoutChildrenOrChild } from '$lib/types'
 
 type InputType = Exclude<HTMLInputTypeAttribute, 'file'>
 

@@ -105,6 +105,7 @@
         <div class="flex items-end gap-2">
           <div class="w-32">
             <InputSelect.Root
+              type="single"
               label={m.min_year()}
               items={yearOptions}
               bind:value={minYear}
@@ -113,6 +114,7 @@
           <span class="mb-2 text-zinc-400">—</span>
           <div class="w-32">
             <InputSelect.Root
+              type="single"
               label={m.max_year()}
               items={yearOptions}
               bind:value={maxYear}
@@ -127,7 +129,7 @@
 
         <!-- Sort Dropdown -->
         <div class="ml-auto w-64">
-          <InputSelect.Root items={sortOptions} bind:value={sortOption} label={m.sort_by()} />
+          <InputSelect.Root type="single" items={sortOptions} bind:value={sortOption} label={m.sort_by()} />
         </div>
       </div>
 

@@ -88,7 +88,7 @@ function createAuthStore() {
 				state.user = {
 					id: data.id,
 					email: data.email,
-					username: data.username
+					username: data.username ?? undefined
 				}
 
 				return true

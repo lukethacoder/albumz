@@ -1,3 +1,4 @@
+/// <reference types="@fastify/jwt" />
 import type { FastifyRequest, FastifyReply } from 'fastify'
 import { db } from '../db/database'
 import type { User } from '../db/schema'

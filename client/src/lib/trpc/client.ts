@@ -1,13 +1,13 @@
 import { createTRPCClient, httpBatchLink } from '@trpc/client'
 import superjson from 'superjson'
 import type { AppRouter } from '../../../../api/src/trpc/root'
-import { PUBLIC_API_URL } from '$env/static/public'
+import { env } from '$env/dynamic/public'
 
 // Browser-side tRPC client
 export const trpc = createTRPCClient<AppRouter>({
   links: [
     httpBatchLink({
-      url: `${PUBLIC_API_URL}/trpc`,
+      url: `${env.PUBLIC_API_URL ?? ''}/trpc`,
       transformer: superjson,
       // Add headers for authentication (will be set by the caller)
       headers: () => {

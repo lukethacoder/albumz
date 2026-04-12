@@ -1,3 +1,4 @@
+/// <reference types="@fastify/jwt" />
 import { TRPCError } from '@trpc/server'
 import { router, publicProcedure, protectedProcedure } from '../trpc/trpc'
 import { registerSchema, loginSchema } from '../schemas/auth.schema'
@@ -6,6 +7,11 @@ import { UserRepository } from '../repositories/user.repository'
 import { passwordService } from '../services/password.service'
 
 export const authRouter = router({
+  hasUsers: publicProcedure.query(async ({ ctx }) => {
+    const userRepo = new UserRepository(ctx.db)
+    return userRepo.hasUsers()
+  }),
+
   register: publicProcedure
     .input(registerSchema)
     .mutation(async ({ input, ctx }) => {

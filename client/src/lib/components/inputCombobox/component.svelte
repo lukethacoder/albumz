@@ -35,6 +35,7 @@
   const mergedRootProps = $derived(mergeProps(restProps, { onOpenChange: handleOpenChange }))
   const mergedInputProps = $derived(
     mergeProps(inputProps, {
+      id,
       oninput: handleInput,
       class: cn(
         'h-9 w-full rounded-md border border-zinc-900/20 bg-transparent pl-3 pr-10 py-1 text-sm text-zinc-700 transition-colors',
@@ -76,7 +77,7 @@
 <Label.Root for={id} bind:ref={labelRef} {...mergedLabelProps}>
   {label}
 </Label.Root>
-<Combobox.Root {id} {type} {items} bind:value={value as never} bind:open {...mergedRootProps}>
+<Combobox.Root {type} {items} bind:value={value as never} bind:open {...mergedRootProps}>
   <div class="relative">
     <Combobox.Input {...mergedInputProps} />
     <Combobox.Trigger

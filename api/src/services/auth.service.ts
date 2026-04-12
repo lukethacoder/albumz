@@ -12,6 +12,15 @@ export class AuthService {
   ) {}
 
   async register(registerDto: RegisterInput): Promise<AuthResponse> {
+    // Registration is only allowed when no users exist
+    const hasUsers = await this.userRepository.hasUsers()
+    if (hasUsers) {
+      throw new TRPCError({
+        code: 'FORBIDDEN',
+        message: 'Registration is disabled',
+      })
+    }
+
     // Check if user already exists
     const existingUser = await this.userRepository.findByEmail(
       registerDto.email,

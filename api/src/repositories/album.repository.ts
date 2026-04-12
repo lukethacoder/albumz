@@ -1,6 +1,7 @@
 import { eq, and, or, like, gte, lte, isNull, desc, asc, sql } from 'drizzle-orm'
 import type { Database } from '../db/database'
-import { albums, Album, NewAlbum } from '../db/schema/album.schema'
+import { albums } from '../db/schema/album.schema'
+import type { Album, NewAlbum } from '../db/schema/album.schema'
 import type { UpdateAlbumInput, AlbumFilter } from '../schemas/album.schema'
 
 export class AlbumRepository {

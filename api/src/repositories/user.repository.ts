@@ -1,6 +1,7 @@
 import { eq } from 'drizzle-orm'
 import type { Database } from '../db/database'
-import { users, NewUser, User } from '../db/schema'
+import { users } from '../db/schema'
+import type { NewUser, User } from '../db/schema'
 
 export class UserRepository {
   constructor(private readonly db: Database) {}
@@ -29,6 +30,11 @@ export class UserRepository {
     const [user] = await this.db.insert(users).values(userData).returning()
 
     return user
+  }
+
+  async hasUsers(): Promise<boolean> {
+    const [user] = await this.db.select({ id: users.id }).from(users).limit(1)
+    return user !== undefined
   }
 
   async update(

@@ -12,7 +12,7 @@
 
   let { data } = $props()
 
-  const isAvailable = (key: string) => data.availableServices.includes(key)
+  const isAvailable = (key: string) => (data.availableServices as string[]).includes(key)
   const isEnabled = (key: string) =>
     data.enabledServices.length === 0 || data.enabledServices.includes(key)
 

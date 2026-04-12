@@ -37,7 +37,7 @@
   // Empty array from server means all enabled — show all available checked by default
   let selectedServices = $state<string[]>(
     data.enabledServices.length > 0
-      ? data.enabledServices.filter((s) => data.availableServices.includes(s))
+      ? data.enabledServices.filter((s) => (data.availableServices as string[]).includes(s))
       : availableServices.map((s) => s.key),
   )
   let servicesSaving = $state(false)
@@ -157,11 +157,12 @@
     <div>
       <h2 class="mb-4 text-xl font-semibold">{m.language()}</h2>
       <InputSelect.Root
+        type="single"
         triggerProps={{ class: 'w-24' }}
         value={getLocale()}
         items={locales.map((l) => ({ value: l, label: l }))}
-        onValueChange={(v) => {
-          setLocale(v ?? 'en')
+        onValueChange={(v: string | undefined) => {
+          setLocale((v ?? 'en') as (typeof locales)[number])
         }}
       />
     </div>

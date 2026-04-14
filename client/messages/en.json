@@ -87,5 +87,8 @@
   "create_account": "Create account",
   "password_must_be_at_least_8_chars": "Password must be at least 8 characters long",
   "registration_failed": "Registration failed. Please try again.",
-  "registration_failed_email_in_use": "Registration failed. Email may already be in use."
+  "registration_failed_email_in_use": "Registration failed. Email may already be in use.",
+  "select_artwork": "Select Artwork",
+  "loading_artwork": "Loading artwork...",
+  "no_artwork_found": "No artwork found."
 }

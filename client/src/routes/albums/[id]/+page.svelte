@@ -2,12 +2,13 @@
   import { Button } from '$lib/components'
   import { m } from '$lib/paraglide/messages.js'
   import { cn, getRelativeTime, translateError } from '$lib/utils'
-  import { Check, RefreshCw, Pencil } from '@lucide/svelte'
+  import { Check, RefreshCw, Pencil, ImagePlus, X } from '@lucide/svelte'
   import Disc from '@lucide/svelte/icons/disc-3'
   import { albumsStore } from '$lib/stores/albums.svelte'
   import { trpc } from '$lib/trpc/client'
   import { invalidateAll } from '$app/navigation'
   import { TRPCClientError } from '@trpc/client'
+  import { Dialog } from 'bits-ui'
 
   import {
     siApplemusic,
@@ -36,6 +37,12 @@
   let refreshing = $state(false)
   let refreshError = $state<string | null>(null)
 
+  // Artwork picker modal state
+  let artworkModalOpen = $state(false)
+  let artworkResults = $state<Array<{ url: string; source: string }>>([])
+  let artworkLoading = $state(false)
+  let artworkSaving = $state(false)
+
   async function deleteAlbum() {
     if (album) {
       await albumsStore.deleteWithConfirm(album.id, album.title, true)
@@ -60,6 +67,53 @@
       }
     } finally {
       refreshing = false
+    }
+  }
+
+  async function openArtworkModal() {
+    artworkModalOpen = true
+    if (artworkResults.length > 0) return
+    artworkLoading = true
+    try {
+      artworkResults = await trpc.albums.findArtwork.mutate({
+        artist: album.artist,
+        album: album.title,
+      })
+    } catch {
+      // silently fail — show empty state
+    } finally {
+      artworkLoading = false
+    }
+  }
+
+  async function handleSelectArtwork(url: string) {
+    artworkSaving = true
+    try {
+      await trpc.albums.update.mutate({ id: album.id, data: { coverUrl: url } })
+      await invalidateAll()
+      artworkModalOpen = false
+    } finally {
+      artworkSaving = false
+    }
+  }
+
+  type ArtworkSourceIcon = { type: 'simple'; icon: SimpleIcon } | { type: 'url'; url: string }
+
+  function getSourceIcon(source: string): ArtworkSourceIcon | null {
+    switch (source) {
+      case 'spotify':
+        return { type: 'simple', icon: siSpotify }
+      case 'lastfm':
+        return { type: 'simple', icon: siLastdotfm }
+      case 'musicbrainz':
+        return { type: 'simple', icon: siMusicbrainz }
+      case 'navidrome':
+        return {
+          type: 'url',
+          url: 'https://cdn.jsdelivr.net/gh/selfhst/icons@main/svg/navidrome.svg',
+        }
+      default:
+        return null
     }
   }
 
@@ -119,7 +173,7 @@
     {#if album}
       <div class="">
         <div
-          class="relative mx-auto flex aspect-square w-full max-w-xl items-center justify-center rounded-lg"
+          class="group relative mx-auto flex aspect-square w-full max-w-xl items-center justify-center rounded-lg"
         >
           {#if album?.coverUrl}
             <span class="absolute h-full w-full opacity-50 blur-lg">
@@ -137,6 +191,13 @@
               <Disc class="h-full w-full text-emerald-600" />
             </span>
           {/if}
+          <button
+            class="absolute top-4 right-4 z-20 cursor-pointer rounded-full bg-black/60 p-2 text-white opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-white focus-visible:outline-none"
+            onclick={openArtworkModal}
+            aria-label="Edit artwork"
+          >
+            <ImagePlus class="h-4 w-4" />
+          </button>
         </div>
       </div>
       <div class="mt-4 w-full sm:mt-10">
@@ -246,3 +307,92 @@
     {/if}
   </div>
 </section>
+
+<!-- Artwork picker modal -->
+<Dialog.Root bind:open={artworkModalOpen}>
+  <Dialog.Portal>
+    <Dialog.Overlay class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm" />
+    <Dialog.Content
+      class="fixed top-1/2 left-1/2 z-50 flex max-h-[80vh] w-full max-w-2xl -translate-x-1/2 -translate-y-1/2 flex-col rounded-xl bg-zinc-950 p-6 shadow-2xl ring-1 ring-white/10"
+    >
+      <div class="mb-4 flex items-center justify-between">
+        <Dialog.Title class="text-lg font-semibold text-neutral-200">Select Artwork</Dialog.Title>
+        <Dialog.Close
+          class="rounded-md p-1 text-zinc-500 transition hover:text-zinc-200"
+          aria-label="Close"
+        >
+          <X class="h-5 w-5" />
+        </Dialog.Close>
+      </div>
+      <Dialog.Description class="sr-only">
+        Choose artwork for {album?.title}
+      </Dialog.Description>
+
+      <div class="flex-1 overflow-y-auto">
+        {#if artworkLoading}
+          <div class="flex flex-col items-center justify-center gap-3 py-16">
+            <svg
+              class="h-8 w-8 animate-spin text-emerald-500"
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              aria-hidden="true"
+            >
+              <circle
+                class="opacity-25"
+                cx="12"
+                cy="12"
+                r="10"
+                stroke="currentColor"
+                stroke-width="4"
+              />
+              <path
+                class="opacity-75"
+                fill="currentColor"
+                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+              />
+            </svg>
+            <p class="text-sm text-zinc-400">Loading artwork...</p>
+          </div>
+        {:else if artworkResults.length === 0}
+          <p class="py-16 text-center text-sm text-zinc-400">No artwork found.</p>
+        {:else}
+          <div class="grid grid-cols-3 gap-3 p-0.5">
+            {#each artworkResults as result (result.url)}
+              {@const icon = getSourceIcon(result.source)}
+              <button
+                class="group/item relative overflow-hidden rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none disabled:opacity-50"
+                onclick={() => handleSelectArtwork(result.url)}
+                disabled={artworkSaving}
+              >
+                <img
+                  src={result.url}
+                  alt="Album artwork"
+                  class="aspect-square w-full object-cover transition group-hover/item:brightness-75"
+                />
+                {#if icon}
+                  <div
+                    class="absolute right-1.5 bottom-1.5 flex h-5 w-5 items-center justify-center p-0.5 shadow-xl"
+                  >
+                    {#if icon.type === 'simple'}
+                      <svg
+                        role="img"
+                        viewBox="0 0 24 24"
+                        class="fill-white"
+                        xmlns="http://www.w3.org/2000/svg"
+                      >
+                        <path d={icon.icon.path} />
+                      </svg>
+                    {:else if icon.type === 'url'}
+                      <img src={icon.url} alt={result.source} class="h-full w-full" />
+                    {/if}
+                  </div>
+                {/if}
+              </button>
+            {/each}
+          </div>
+        {/if}
+      </div>
+    </Dialog.Content>
+  </Dialog.Portal>
+</Dialog.Root>

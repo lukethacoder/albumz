@@ -400,6 +400,29 @@ export async function fetchCoverArtFromMbid(
   }
 }
 
+export async function searchSpotifyArtwork(
+  artist: string,
+  album: string,
+): Promise<string[]> {
+  try {
+    const token = await getSpotifyToken()
+    const q = `album:${album} artist:${artist}`
+    const res = await fetch(
+      `https://api.spotify.com/v1/search?q=${encodeURIComponent(q)}&type=album&limit=5`,
+      { headers: { Authorization: `Bearer ${token}` } },
+    )
+    if (!res.ok) return []
+    const data = (await res.json()) as {
+      albums?: { items?: Array<{ images?: Array<{ url: string }> }> }
+    }
+    return (data.albums?.items ?? [])
+      .map((item) => item.images?.[0]?.url)
+      .filter((url): url is string => !!url)
+  } catch {
+    return []
+  }
+}
+
 export async function fetchLastFmAlbumInfo(
   artist: string,
   album: string,

@@ -14,11 +14,18 @@ import {
   fetchLastFmAlbumInfo,
   fetchCoverArtFromMbid,
   fetchSpotifyPlaylistAlbums,
+  searchSpotifyArtwork,
   parseUrl,
 } from '../services/url-import.service'
 import { eq } from 'drizzle-orm'
-import { enrichFromMusicBrainz } from '../services/musicbrainz.service'
-import { fetchNavidromeAlbumUrl } from '../services/navidrome.service'
+import {
+  enrichFromMusicBrainz,
+  searchMusicBrainzArtwork,
+} from '../services/musicbrainz.service'
+import {
+  fetchNavidromeAlbumUrl,
+  fetchNavidromeCoverArtUrl,
+} from '../services/navidrome.service'
 import { decrypt } from '../services/encryption.service'
 import { userConfig } from '../db/schema/navidrome.schema'
 import { db } from '../db/database'
@@ -62,11 +69,16 @@ async function runImportJob(
       if (lastFm?.mbid && !metadata.mbid) metadata.mbid = lastFm.mbid
       lastFmCoverUrl = lastFm?.coverUrl
     }
+    let caaCover: string | undefined
     if (metadata.mbid) {
-      const caaCover = await fetchCoverArtFromMbid(metadata.mbid)
-      metadata.coverUrl = caaCover ?? lastFmCoverUrl ?? metadata.coverUrl
-    } else if (lastFmCoverUrl) {
-      metadata.coverUrl = lastFmCoverUrl
+      caaCover = await fetchCoverArtFromMbid(metadata.mbid)
+    }
+    // Priority: Spotify image (preferred) > LastFM > CAA > YouTube thumbnail (last resort)
+    const { kind } = parseUrl(url)
+    if (kind === 'spotify_album' || kind === 'spotify_track') {
+      metadata.coverUrl = metadata.coverUrl ?? lastFmCoverUrl ?? caaCover
+    } else {
+      metadata.coverUrl = lastFmCoverUrl ?? caaCover ?? metadata.coverUrl
     }
 
     updateJob(jobId, { step: 'saving' })
@@ -196,7 +208,7 @@ async function runPlaylistImportJob(
  * Best-effort metadata enrichment for a single album.
  * Silently skips steps that fail or lack an MBID — safe to fire-and-forget.
  */
-async function enrichAlbum(albumId: string, userId: string): Promise<void> {
+async function enrichAlbum(albumId: string, userId: string, skipArtwork = false): Promise<void> {
   try {
     const albumRepo = new AlbumRepository(db)
     const albumService = new AlbumService(albumRepo)
@@ -240,9 +252,12 @@ async function enrichAlbum(albumId: string, userId: string): Promise<void> {
     }
 
     if (isEnabled(enabled, 'musicbrainz')) {
-      const caaCover = await fetchCoverArtFromMbid(mbid)
-      const newCover = caaCover ?? lastFmCoverUrl
-      if (newCover) updates.coverUrl = newCover
+      if (!skipArtwork) {
+        const caaCover = await fetchCoverArtFromMbid(mbid)
+        // LastFM preferred over CAA
+        const newCover = lastFmCoverUrl ?? caaCover
+        if (newCover) updates.coverUrl = newCover
+      }
 
       const mb = await enrichFromMusicBrainz(mbid)
       if (mb.urlSpotify && isEnabled(enabled, 'spotify'))
@@ -451,7 +466,7 @@ export const albumRouter = router({
         }
       }
 
-      await enrichAlbum(input.id, ctx.user.id)
+      await enrichAlbum(input.id, ctx.user.id, true)
       return albumService.findById(input.id, ctx.user.id)
     }),
 
@@ -464,5 +479,56 @@ export const albumRouter = router({
       const dateCompleted = input.completed ? new Date() : null
 
       return albumService.update(input.id, ctx.user.id, { dateCompleted })
+    }),
+
+  findArtwork: protectedProcedure
+    .input(z.object({ artist: z.string().min(1), album: z.string().min(1) }))
+    .mutation(async ({ input, ctx }) => {
+      const results: Array<{ url: string; source: string }> = []
+
+      const [configRow] = await ctx.db
+        .select()
+        .from(userConfig)
+        .where(eq(userConfig.userId, ctx.user.id))
+        .limit(1)
+      const enabled = configRow?.enabledExternalServices ?? []
+
+      // 1. Spotify (preferred — highest quality)
+      if (
+        isEnabled(enabled, 'spotify') &&
+        process.env.SPOTIFY_CLIENT_ID &&
+        process.env.SPOTIFY_CLIENT_SECRET
+      ) {
+        const urls = await searchSpotifyArtwork(input.artist, input.album)
+        for (const url of urls) results.push({ url, source: 'spotify' })
+      }
+
+      // 2. LastFM
+      if (isEnabled(enabled, 'lastfm') && process.env.LASTFM_API_KEY) {
+        const info = await fetchLastFmAlbumInfo(input.artist, input.album)
+        if (info?.coverUrl) results.push({ url: info.coverUrl, source: 'lastfm' })
+      }
+
+      // 3. Navidrome (if configured)
+      if (
+        isEnabled(enabled, 'navidrome') &&
+        configRow?.navidromeUrl &&
+        configRow?.navidromePassword
+      ) {
+        const coverUrl = await fetchNavidromeCoverArtUrl(input.artist, input.album, {
+          url: configRow.navidromeUrl,
+          username: configRow.navidromeUsername!,
+          password: decrypt(configRow.navidromePassword),
+        })
+        if (coverUrl) results.push({ url: coverUrl, source: 'navidrome' })
+      }
+
+      // 4. MusicBrainz / Cover Art Archive (fallback)
+      if (isEnabled(enabled, 'musicbrainz')) {
+        const urls = await searchMusicBrainzArtwork(input.artist, input.album)
+        for (const url of urls) results.push({ url, source: 'musicbrainz' })
+      }
+
+      return results
     }),
 })

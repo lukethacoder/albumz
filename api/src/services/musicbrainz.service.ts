@@ -79,6 +79,53 @@ async function getReleaseGroupUrls(
   return extractUrlRels(data.relations)
 }
 
+export async function searchMusicBrainzArtwork(
+  artist: string,
+  album: string,
+): Promise<string[]> {
+  try {
+    await sleep(300)
+    const query = `artist:"${artist}" releasegroup:"${album}"`
+    const data = await mbFetch<{
+      'release-groups'?: Array<{ id: string }>
+    }>(`/release-group/?query=${encodeURIComponent(query)}&limit=5&fmt=json`)
+    if (!data?.['release-groups']?.length) return []
+
+    const results: string[] = []
+    for (const rg of data['release-groups'].slice(0, 3)) {
+      await sleep(300)
+      try {
+        const caaRes = await fetch(
+          `https://coverartarchive.org/release-group/${rg.id}`,
+          { headers: { Accept: 'application/json' } },
+        )
+        if (!caaRes.ok) continue
+        const caaData = (await caaRes.json()) as {
+          images?: Array<{
+            front: boolean
+            image: string
+            thumbnails: { '1200'?: string; large?: string; '500'?: string }
+          }>
+        }
+        const front =
+          caaData.images?.find((img) => img.front) ?? caaData.images?.[0]
+        if (!front) continue
+        results.push(
+          front.thumbnails['1200'] ??
+            front.thumbnails.large ??
+            front.thumbnails['500'] ??
+            front.image,
+        )
+      } catch {
+        // skip this release-group
+      }
+    }
+    return results
+  } catch {
+    return []
+  }
+}
+
 export async function enrichFromMusicBrainz(
   releaseMbid: string,
 ): Promise<MusicBrainzUrlRels> {

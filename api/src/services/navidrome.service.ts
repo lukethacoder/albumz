@@ -76,6 +76,26 @@ function formatItemDate(d: ItemDate): string | undefined {
 }
 
 /**
+ * Returns a direct cover art URL for a Navidrome album, authenticated via Subsonic token auth.
+ * The returned URL embeds authentication parameters and is valid as long as credentials don't change.
+ */
+export async function fetchNavidromeCoverArtUrl(
+  artist: string,
+  title: string,
+  config: NavidromeConfig,
+): Promise<string | undefined> {
+  const result = await fetchNavidromeAlbumUrl(artist, title, config)
+  if (!result) return undefined
+
+  // Extract albumId from relativeUrl: /app/#/album/{id}/show
+  const albumIdMatch = result.relativeUrl.match(/\/album\/([^/]+)\/show/)
+  if (!albumIdMatch?.[1]) return undefined
+
+  const params = buildSubsonicParams(config, { id: albumIdMatch[1], size: '600' })
+  return `${config.url}/rest/getCoverArt.view?${params}`
+}
+
+/**
  * Find a Navidrome album by searching for artist and title (or track name) via the Subsonic API.
  * Returns the relative album URL, MusicBrainz ID, album title, artist, and release date if available.
  */

@@ -1,14 +1,16 @@
 # albumz
-💿 self-hosted album backlog tracker 
+
+💿 self-hosted album backlog tracker
 
 ## Features
+
 - Add by URL for Spotify, YouTube and Apple Music
 - Multi-user Support
 - Automatic linking via LastFM and MusicBrainz
 - Automatic metdata fetching via LastFM & MusicBrainz
 - External link support: Spotify, YouTube, LastFM, MusicBrainz, RateYourMusic, Navidrome
 - Extensive sorting and filtering
-- i18n Support* (English and Dutch, PRs welcome for extending)
+- i18n Support\* (English and Dutch, PRs welcome for extending)
 
 ## Deployment
 
@@ -51,17 +53,17 @@ Migrations run automatically on startup. The app is available at `http://localho
 
 ### Environment Variables
 
-| Variable | Required | Default | Description |
-|---|---|---|---|
-| `POSTGRES_USER` | Yes | `admin` | PostgreSQL username |
-| `POSTGRES_PASSWORD` | Yes | — | PostgreSQL password |
-| `POSTGRES_DB` | Yes | `albumz` | PostgreSQL database name |
-| `JWT_SECRET` | Yes | — | Secret used to sign JWT tokens |
-| `JWT_EXPIRES_IN` | No | `3600s` | Token lifetime (e.g. `3600s`, `24h`) |
-| `ORIGIN` | Yes | `http://localhost:3000` | Public URL the app is served from |
-| `LASTFM_API_KEY` | No | — | Enables Last.fm metadata and linking |
-| `SPOTIFY_CLIENT_ID` | No | — | Enables Spotify URL import |
-| `SPOTIFY_CLIENT_SECRET` | No | — | Enables Spotify URL import |
+| Variable                | Required | Default                 | Description                          |
+| ----------------------- | -------- | ----------------------- | ------------------------------------ |
+| `POSTGRES_USER`         | Yes      | `admin`                 | PostgreSQL username                  |
+| `POSTGRES_PASSWORD`     | Yes      | —                       | PostgreSQL password                  |
+| `POSTGRES_DB`           | Yes      | `albumz`                | PostgreSQL database name             |
+| `JWT_SECRET`            | Yes      | —                       | Secret used to sign JWT tokens       |
+| `JWT_EXPIRES_IN`        | No       | `3600s`                 | Token lifetime (e.g. `3600s`, `24h`) |
+| `ORIGIN`                | Yes      | `http://localhost:3000` | Public URL the app is served from    |
+| `LASTFM_API_KEY`        | No       | —                       | Enables Last.fm metadata and linking |
+| `SPOTIFY_CLIENT_ID`     | No       | —                       | Enables Spotify URL import           |
+| `SPOTIFY_CLIENT_SECRET` | No       | —                       | Enables Spotify URL import           |
 
 ### Deploying behind a reverse proxy
 
@@ -70,6 +72,20 @@ Set `ORIGIN` to your public domain and proxy port `3000` through your reverse pr
 ```env
 ORIGIN=https://albumz.example.com
 ```
+
+## External Services
+
+albumz relies on several external services for metadata and album artwork. External services are configurable on a per-user basis (enable/disable).
+
+| Service         | URL Import | Image Source | Requirements                                         | Notes                                                                                                                                                                            |
+| --------------- | ---------- | ------------ | ---------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Spotify         | ✔          | ✔            | `SPOTIFY_CLIENT_ID` and `SPOTIFY_CLIENT_SECRET`      | Import of both albums and bulk add via playlists (public only)                                                                                                                   |
+| LastFM          | ❌         | ✔            | `LASTFM_API_KEY`                                     |                                                                                                                                                                                  |
+| YouTube         | ✔          | ❓           | N/A                                                  | YouTube Thumbnails are used as a last resort of the artwork is unable to be sourced otherwise. You can always fix the title/artist and manually select via the artwork selector. |
+| MusicBrainz     | ❌         | ✔            | N/A                                                  | Image URLs are sourced from MusicBrainz, but are hosted on CoverArtArchive                                                                                                       |
+| Navidrome       | ❌         | ✔            | User specific Navidrome Configuration (Profile page) | If you have this behind a reverse proxy, images may not load when you are not on your VPN/Tailscale                                                                              |
+| AppleMusic      | ❌         | ❌           | N/A                                                  | URLs to AppleMusic are sourced via MusicBrainz                                                                                                                                   |
+| Rate Your Music | ❌         | ❌           | N/A                                                  | URLs to Rate Your Music are sourced via MusicBrainz                                                                                                                              |
 
 ## Development
 
@@ -96,6 +112,7 @@ pnpm dev
 ```
 
 Services run at:
+
 - Client: http://localhost:5173
 - API: http://localhost:3000
 - PostgreSQL: http://localhost:5432

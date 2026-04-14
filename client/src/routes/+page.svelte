@@ -4,6 +4,8 @@
   import { goto } from '$app/navigation'
   import { page } from '$app/stores'
   import { m } from '$lib/paraglide/messages'
+  import { albumsStore } from '$lib/stores/albums.svelte'
+  import { Check, Trash2, X } from '@lucide/svelte'
 
   // albums from server load
   let { data } = $props()
@@ -79,6 +81,92 @@
   }
 
   const resultCount = $derived(data.albums.length)
+
+  // Bulk selection
+  let selectionMode = $state(false)
+  let selectedIds = $state(new Set<string>())
+
+  function toggleSelectionMode() {
+    selectionMode = !selectionMode
+    if (!selectionMode) selectedIds = new Set()
+  }
+  const selectedAlbums = $derived(data.albums.filter((a) => selectedIds.has(a.id)))
+  const allSelectedComplete = $derived(
+    selectedAlbums.length > 0 && selectedAlbums.every((a) => !!a.dateCompleted),
+  )
+
+  let lastClickedId = $state<string | null>(null)
+  let lastClickedAction = $state<'select' | 'deselect'>('select')
+
+  // When filters change, prune selected/anchor IDs that are no longer visible.
+  // Intentionally not re-selecting if the album reappears later.
+  $effect(() => {
+    const visibleIds = new Set(data.albums.map((a) => a.id))
+    const pruned = new Set([...selectedIds].filter((id) => visibleIds.has(id)))
+    if (pruned.size !== selectedIds.size) selectedIds = pruned
+    if (lastClickedId && !visibleIds.has(lastClickedId)) lastClickedId = null
+  })
+
+  function toggleSelect(albumId: string, shiftKey: boolean) {
+    const next = new Set(selectedIds)
+    const ids = data.albums.map((a) => a.id)
+
+    if (shiftKey && lastClickedId) {
+      const from = ids.indexOf(lastClickedId)
+      const to = ids.indexOf(albumId)
+      const [start, end] = from < to ? [from, to] : [to, from]
+      const range = ids.slice(start, end + 1)
+      if (lastClickedAction === 'select') range.forEach((id) => next.add(id))
+      else range.forEach((id) => next.delete(id))
+    } else {
+      if (next.has(albumId)) {
+        next.delete(albumId)
+        lastClickedAction = 'deselect'
+      } else {
+        next.add(albumId)
+        lastClickedAction = 'select'
+      }
+      lastClickedId = albumId
+    }
+
+    selectedIds = next
+  }
+
+  function selectAll() {
+    selectedIds = new Set(data.albums.map((a) => a.id))
+  }
+
+  function deselectAll() {
+    selectedIds = new Set()
+  }
+
+  let bulkLoading = $state(false)
+
+  async function bulkDelete() {
+    const count = selectedIds.size
+    const confirmed = confirm(
+      `Delete ${count} album${count === 1 ? '' : 's'}? This cannot be undone.`,
+    )
+    if (!confirmed) return
+    bulkLoading = true
+    try {
+      await Promise.all([...selectedIds].map((id) => albumsStore.delete(id)))
+      deselectAll()
+    } finally {
+      bulkLoading = false
+    }
+  }
+
+  async function bulkToggleComplete() {
+    const markComplete = !allSelectedComplete
+    bulkLoading = true
+    try {
+      await Promise.all([...selectedIds].map((id) => albumsStore.markComplete(id, markComplete)))
+      deselectAll()
+    } finally {
+      bulkLoading = false
+    }
+  }
 </script>
 
 <svelte:head>
@@ -129,13 +217,29 @@
 
         <!-- Sort Dropdown -->
         <div class="ml-auto w-64">
-          <InputSelect.Root type="single" items={sortOptions} bind:value={sortOption} label={m.sort_by()} />
+          <InputSelect.Root
+            type="single"
+            items={sortOptions}
+            bind:value={sortOption}
+            label={m.sort_by()}
+          />
         </div>
       </div>
 
       <!-- Results Count -->
-      <div class="text-sm text-zinc-600 dark:text-zinc-400">
-        {m.showing_albums({ count: resultCount })}
+      <div class="flex items-center justify-between">
+        <span class="text-sm text-zinc-600 dark:text-zinc-400">
+          {m.showing_albums({ count: resultCount })}
+        </span>
+        <button
+          onclick={toggleSelectionMode}
+          class="cursor-pointer text-sm transition
+            {selectionMode
+            ? 'text-emerald-500 hover:text-emerald-400'
+            : 'text-zinc-500 hover:text-zinc-300'}"
+        >
+          {selectionMode ? 'Cancel selection' : 'Select mode'}
+        </button>
       </div>
     </div>
   </div>
@@ -163,6 +267,9 @@
               artist={album.artist}
               releaseDate={album.releaseDate}
               coverUrl={album.coverUrl}
+              dateCompleted={album.dateCompleted}
+              selected={selectedIds.has(album.id)}
+              onToggleSelect={selectionMode ? toggleSelect : undefined}
             />
           </li>
         {/each}
@@ -170,3 +277,49 @@
     {/if}
   </section>
 </div>
+
+<!-- Bulk action bar -->
+{#if selectedIds.size > 0}
+  <div
+    class="fixed right-4 bottom-4 left-4 z-50 mx-auto flex max-w-lg items-center gap-3 rounded-xl bg-zinc-900 px-4 py-3 shadow-2xl ring-1 ring-white/10"
+  >
+    <span class="min-w-0 flex-1 text-sm font-medium text-zinc-200">
+      {selectedIds.size} selected
+    </span>
+    <button
+      onclick={selectedIds.size === data.albums.length ? deselectAll : selectAll}
+      class="shrink-0 text-xs text-zinc-400 transition hover:text-zinc-200"
+      disabled={bulkLoading}
+    >
+      {selectedIds.size === data.albums.length ? 'Deselect all' : 'Select all'}
+    </button>
+    <button
+      onclick={bulkToggleComplete}
+      disabled={bulkLoading}
+      aria-label={allSelectedComplete ? 'Mark incomplete' : 'Mark complete'}
+      class="flex shrink-0 items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium transition disabled:opacity-50
+        {allSelectedComplete
+        ? 'bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30'
+        : 'bg-zinc-800 text-zinc-300 hover:bg-zinc-700'}"
+    >
+      <Check class="h-3.5 w-3.5" />
+      {allSelectedComplete ? 'Mark incomplete' : 'Mark complete'}
+    </button>
+    <button
+      onclick={bulkDelete}
+      disabled={bulkLoading}
+      class="flex shrink-0 items-center gap-1.5 rounded-md bg-red-500/20 px-2.5 py-1.5 text-xs font-medium text-red-400 transition hover:bg-red-500/30 disabled:opacity-50"
+    >
+      <Trash2 class="h-3.5 w-3.5" />
+      Delete
+    </button>
+    <button
+      onclick={deselectAll}
+      disabled={bulkLoading}
+      aria-label="Clear selection"
+      class="shrink-0 text-zinc-500 transition hover:text-zinc-300 disabled:opacity-50"
+    >
+      <X class="h-4 w-4" />
+    </button>
+  </div>
+{/if}

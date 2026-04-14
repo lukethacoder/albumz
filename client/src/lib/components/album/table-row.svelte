@@ -91,7 +91,22 @@
   <td class="py-2 pr-4 text-sm tabular-nums dark:text-neutral-500">{releaseYear}</td>
 
   <!-- Genre -->
-  <td class="py-2 pr-4 text-sm dark:text-neutral-500">{genre ?? '—'}</td>
+  <td class="py-2 pr-4 text-sm dark:text-neutral-500">
+    {#if genre}
+      <span class="flex flex-wrap gap-x-1">
+        {#each genre.split(';').map((g) => g.trim()).filter(Boolean) as g, i (g)}
+          {#if i > 0}<span class="text-neutral-600">•</span>{/if}
+          <a
+            href="/?genres={encodeURIComponent(g)}"
+            onclick={(e) => e.stopPropagation()}
+            class="hover:text-neutral-300 hover:underline"
+          >{g}</a>
+        {/each}
+      </span>
+    {:else}
+      —
+    {/if}
+  </td>
 
   <!-- Date added -->
   <td class="py-2 pr-4 text-sm dark:text-neutral-500">

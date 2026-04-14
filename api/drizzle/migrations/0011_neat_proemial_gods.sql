@@ -1,0 +1,1 @@
+ALTER TABLE "albums" ALTER COLUMN "genre" SET DATA TYPE text;

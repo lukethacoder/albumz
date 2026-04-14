@@ -12,6 +12,7 @@ export type NavidromeAlbumResult = {
   albumTitle?: string
   artist?: string
   releaseDate?: string // YYYY-MM-DD, YYYY-MM, or YYYY depending on available precision
+  genre?: string
 }
 
 type SubsonicSong = {
@@ -44,6 +45,7 @@ type SubsonicGetAlbumResponse = {
       artist?: string
       musicBrainzId?: string
       originalReleaseDate?: ItemDate
+      genre?: string
     }
   }
 }
@@ -139,6 +141,7 @@ export async function fetchNavidromeAlbumUrl(
     let albumArtist: string | undefined = song.artist || undefined
     let releaseDate: string | undefined
 
+    let genre: string | undefined
     if (albumRes.ok) {
       const albumData = (await albumRes.json()) as SubsonicGetAlbumResponse
       const album = albumData['subsonic-response']?.album
@@ -146,6 +149,7 @@ export async function fetchNavidromeAlbumUrl(
         mbid = album.musicBrainzId || undefined
         albumTitle = album.name || albumTitle
         albumArtist = album.artist || albumArtist
+        genre = album.genre || undefined
         if (album.originalReleaseDate) {
           releaseDate = formatItemDate(album.originalReleaseDate)
         }
@@ -158,6 +162,7 @@ export async function fetchNavidromeAlbumUrl(
       albumTitle,
       artist: albumArtist,
       releaseDate,
+      genre,
     }
   } catch {
     return undefined

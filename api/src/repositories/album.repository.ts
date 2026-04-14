@@ -1,4 +1,4 @@
-import { eq, and, or, like, gte, lte, isNull, desc, asc, sql } from 'drizzle-orm'
+import { eq, and, or, isNull, desc, asc, sql } from 'drizzle-orm'
 import type { Database } from '../db/database'
 import { albums } from '../db/schema/album.schema'
 import type { Album, NewAlbum } from '../db/schema/album.schema'
@@ -24,6 +24,14 @@ export class AlbumRepository {
           sql`LOWER(${albums.artist}) LIKE ${searchLower}`,
         )!,
       )
+    }
+
+    // Filter by genres (OR logic — album matches if it contains any of the selected genres)
+    if (filters?.genres?.length) {
+      const genreConditions = filters.genres.map((g) =>
+        sql`LOWER(${albums.genre}) LIKE ${'%' + g.toLowerCase() + '%'}`,
+      )
+      conditions.push(or(...genreConditions)!)
     }
 
     // Filter by release year range

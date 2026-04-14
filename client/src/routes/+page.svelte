@@ -16,6 +16,7 @@
   let maxYear = $state<string>('')
   let showCompleted = $state(false)
   let sortOption = $state<string>('dateAddedDesc')
+  let selectedGenres = $state<string[]>([])
 
   // Sort options
   const sortOptions = $derived([
@@ -34,6 +35,10 @@
     })),
   ])
 
+  const genreOptions = $derived(
+    data.availableGenres.map((g) => ({ value: g, label: g })),
+  )
+
   // Sync URL params to local state (handles initial load and browser back/forward)
   $effect(() => {
     searchQuery = $page.url.searchParams.get('search') || ''
@@ -41,6 +46,7 @@
     maxYear = $page.url.searchParams.get('maxYear') || ''
     showCompleted = $page.url.searchParams.get('showCompleted') === 'true'
     sortOption = $page.url.searchParams.get('sortBy') || 'dateAddedDesc'
+    selectedGenres = ($page.url.searchParams.get('genres') || '').split(',').filter(Boolean)
   })
 
   // Debounced search - update URL when searchQuery changes
@@ -60,6 +66,7 @@
     void maxYear
     void showCompleted
     void sortOption
+    void selectedGenres
 
     updateUrl()
   })
@@ -71,6 +78,7 @@
     if (maxYear) params.set('maxYear', maxYear)
     if (showCompleted) params.set('showCompleted', 'true')
     if (sortOption !== 'dateAddedDesc') params.set('sortBy', sortOption)
+    if (selectedGenres.length) params.set('genres', selectedGenres.join(','))
 
     const newUrl = `?${params.toString()}`
     const currentUrl = `?${$page.url.searchParams.toString()}`
@@ -220,6 +228,35 @@
             />
           </div>
         </div>
+
+        <!-- Genre Filter -->
+        {#if data.availableGenres.length > 0}
+          <div class="w-52">
+            <InputCombobox.Root
+              id="genre-filter"
+              type="multiple"
+              label="Genre"
+              items={genreOptions}
+              bind:value={selectedGenres}
+            />
+            {#if selectedGenres.length > 0}
+              <div class="mt-1.5 flex flex-wrap gap-1">
+                {#each selectedGenres as g (g)}
+                  <span
+                    class="flex items-center gap-1 rounded-full bg-emerald-500/20 px-2 py-0.5 text-xs text-emerald-400"
+                  >
+                    {g}
+                    <button
+                      onclick={() => (selectedGenres = selectedGenres.filter((s) => s !== g))}
+                      aria-label="Remove {g}"
+                      class="cursor-pointer opacity-70 hover:opacity-100"
+                    >×</button>
+                  </span>
+                {/each}
+              </div>
+            {/if}
+          </div>
+        {/if}
 
         <!-- Show Completed Checkbox -->
         <div class="mb-2">

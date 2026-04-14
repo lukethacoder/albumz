@@ -4,7 +4,7 @@ import { z } from 'zod'
 export const createAlbumSchema = z.object({
   title: z.string().min(1).max(255),
   artist: z.string().min(1).max(255),
-  genre: z.string().max(100).optional(),
+  genre: z.string().optional(),
   releaseDate: z.string().datetime().or(z.string().date()).optional(),
   description: z.string().optional(),
   coverUrl: z.string().url().max(500).optional(),
@@ -15,7 +15,7 @@ export const createAlbumSchema = z.object({
 export const updateAlbumSchema = z.object({
   title: z.string().min(1).max(255).optional(),
   artist: z.string().min(1).max(255).optional(),
-  genre: z.string().max(100).optional(),
+  genre: z.string().optional(),
   releaseDate: z.string().datetime().or(z.string().date()).optional(),
   description: z.string().optional(),
   coverUrl: z.string().url().max(500).optional(),
@@ -36,6 +36,7 @@ export const albumFilterSchema = z.object({
   search: z.string().optional(),
   minYear: z.number().int().min(1900).max(2100).optional(),
   maxYear: z.number().int().min(1900).max(2100).optional(),
+  genres: z.array(z.string()).optional(),
   showCompleted: z.boolean().optional().default(false),
   sortBy: z
     .enum([

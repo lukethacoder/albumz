@@ -16,7 +16,7 @@ export const albums = pgTable('albums', {
     .references(() => users.id, { onDelete: 'cascade' }),
   title: varchar('title', { length: 255 }).notNull(),
   artist: varchar('artist', { length: 255 }).notNull(),
-  genre: varchar('genre', { length: 100 }),
+  genre: text('genre'),
   releaseDate: date('release_date'),
   description: text('description'),
   coverUrl: varchar('cover_url', { length: 500 }),

@@ -15,12 +15,15 @@ import {
   fetchCoverArtFromMbid,
   fetchSpotifyPlaylistAlbums,
   searchSpotifyArtwork,
+  searchSpotifyGenres,
+  searchAppleMusicGenre,
   parseUrl,
 } from '../services/url-import.service'
 import { eq } from 'drizzle-orm'
 import {
   enrichFromMusicBrainz,
   searchMusicBrainzArtwork,
+  fetchMusicBrainzGenres,
 } from '../services/musicbrainz.service'
 import {
   fetchNavidromeAlbumUrl,
@@ -64,10 +67,11 @@ async function runImportJob(
 
     updateJob(jobId, { step: 'fetching_artwork' })
     let lastFmCoverUrl: string | undefined
+    let lastFmInfo: Awaited<ReturnType<typeof fetchLastFmAlbumInfo>> | undefined
     if (isEnabled(enabled, 'lastfm')) {
-      const lastFm = await fetchLastFmAlbumInfo(metadata.artist, metadata.title)
-      if (lastFm?.mbid && !metadata.mbid) metadata.mbid = lastFm.mbid
-      lastFmCoverUrl = lastFm?.coverUrl
+      lastFmInfo = await fetchLastFmAlbumInfo(metadata.artist, metadata.title)
+      if (lastFmInfo?.mbid && !metadata.mbid) metadata.mbid = lastFmInfo.mbid
+      lastFmCoverUrl = lastFmInfo?.coverUrl
     }
     let caaCover: string | undefined
     if (metadata.mbid) {
@@ -79,6 +83,42 @@ async function runImportJob(
       metadata.coverUrl = metadata.coverUrl ?? lastFmCoverUrl ?? caaCover
     } else {
       metadata.coverUrl = lastFmCoverUrl ?? caaCover ?? metadata.coverUrl
+    }
+
+    // Genre fallback chain (import only — enrichAlbum never updates genre)
+    // Step 1: genre from URL import source (already in metadata.genre if Spotify/Apple Music)
+    // Step 2: Navidrome
+    if (!metadata.genre && navidromeConfig && isEnabled(enabled, 'navidrome')) {
+      const navResult = await fetchNavidromeAlbumUrl(
+        metadata.artist,
+        metadata.title,
+        navidromeConfig,
+      )
+      if (navResult?.genre) metadata.genre = navResult.genre
+    }
+    // Step 3: opposite service
+    if (!metadata.genre) {
+      if (
+        (kind === 'spotify_album' || kind === 'spotify_track') &&
+        isEnabled(enabled, 'applemusic')
+      ) {
+        metadata.genre = await searchAppleMusicGenre(metadata.artist, metadata.title)
+      } else if (
+        kind === 'apple_music' &&
+        isEnabled(enabled, 'spotify') &&
+        process.env.SPOTIFY_CLIENT_ID &&
+        process.env.SPOTIFY_CLIENT_SECRET
+      ) {
+        metadata.genre = await searchSpotifyGenres(metadata.artist, metadata.title)
+      }
+    }
+    // Step 4: LastFM (already fetched above)
+    if (!metadata.genre && lastFmInfo?.genre) {
+      metadata.genre = lastFmInfo.genre
+    }
+    // Step 5: MusicBrainz
+    if (!metadata.genre && isEnabled(enabled, 'musicbrainz')) {
+      metadata.genre = await fetchMusicBrainzGenres(metadata.artist, metadata.title)
     }
 
     updateJob(jobId, { step: 'saving' })

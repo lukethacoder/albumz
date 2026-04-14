@@ -24,6 +24,8 @@ export const load: PageServerLoad = async ({ cookies, url }) => {
       | 'releaseDateDesc'
       | 'releaseDateAsc'
       | null) || 'dateAddedDesc'
+  const genresParam = url.searchParams.get('genres')
+  const genres = genresParam ? genresParam.split(',').filter(Boolean) : undefined
 
   try {
     // Get filtered albums
@@ -33,6 +35,7 @@ export const load: PageServerLoad = async ({ cookies, url }) => {
       maxYear,
       showCompleted,
       sortBy,
+      genres,
     })
 
     // Get all albums (unfiltered) to extract available years
@@ -56,9 +59,17 @@ export const load: PageServerLoad = async ({ cookies, url }) => {
       ),
     ).sort((a, b) => b - a)
 
+    const availableGenres = Array.from(
+      new Set(
+        allAlbums.flatMap((album) =>
+          album.genre ? album.genre.split(';').map((g) => g.trim()).filter(Boolean) : [],
+        ),
+      ),
+    ).sort()
+
     const viewMode = cookies.get('viewMode') === 'table' ? 'table' : ('grid' as const)
 
-    return { albums, availableYears, viewMode }
+    return { albums, availableYears, availableGenres, viewMode }
   } catch (error) {
     console.log('error ', error)
     if (error instanceof TRPCClientError && error.data?.code === 'UNAUTHORIZED') {

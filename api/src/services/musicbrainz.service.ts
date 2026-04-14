@@ -126,6 +126,38 @@ export async function searchMusicBrainzArtwork(
   }
 }
 
+export async function fetchMusicBrainzGenres(
+  artist: string,
+  album: string,
+): Promise<string | undefined> {
+  try {
+    await sleep(300)
+    const query = `artist:"${artist}" releasegroup:"${album}"`
+    const searchData = await mbFetch<{
+      'release-groups'?: Array<{ id: string }>
+    }>(`/release-group/?query=${encodeURIComponent(query)}&limit=1&fmt=json`)
+
+    const rgId = searchData?.['release-groups']?.[0]?.id
+    if (!rgId) return undefined
+
+    await sleep(300)
+    const rgData = await mbFetch<{
+      genres?: Array<{ name: string; count: number }>
+    }>(`/release-group/${rgId}?inc=genres&fmt=json`)
+
+    const genres = rgData?.genres ?? []
+    if (!genres.length) return undefined
+
+    return genres
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 5)
+      .map((g) => g.name)
+      .join(';')
+  } catch {
+    return undefined
+  }
+}
+
 export async function enrichFromMusicBrainz(
   releaseMbid: string,
 ): Promise<MusicBrainzUrlRels> {

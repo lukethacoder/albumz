@@ -4,7 +4,7 @@ import { fetchNavidromeAlbumUrl } from './navidrome.service'
 
 export type AlbumMetadata = Pick<
   CreateAlbumInput,
-  'title' | 'artist' | 'releaseDate' | 'coverUrl' | 'mbid'
+  'title' | 'artist' | 'releaseDate' | 'coverUrl' | 'mbid' | 'genre'
 >
 
 /**
@@ -104,6 +104,7 @@ async function fetchSpotifyAlbum(albumId: string): Promise<AlbumMetadata> {
     artists: { name: string }[]
     release_date: string
     images: { url: string }[]
+    genres: string[]
   }
 
   return {
@@ -111,6 +112,7 @@ async function fetchSpotifyAlbum(albumId: string): Promise<AlbumMetadata> {
     artist: data.artists.map((a) => a.name).join(', '),
     releaseDate: normalizeDate(data.release_date || undefined),
     coverUrl: data.images[0]?.url,
+    genre: data.genres?.length ? data.genres.join(';') : undefined,
   }
 }
 
@@ -123,6 +125,7 @@ async function fetchSpotifyTrack(trackId: string): Promise<AlbumMetadata> {
 
   const data = (await res.json()) as {
     album: {
+      id: string
       name: string
       artists: { name: string }[]
       release_date: string
@@ -130,11 +133,26 @@ async function fetchSpotifyTrack(trackId: string): Promise<AlbumMetadata> {
     }
   }
 
+  // Fetch the full album to get genres (track response has a simplified album object)
+  let genre: string | undefined
+  try {
+    const albumRes = await fetch(`https://api.spotify.com/v1/albums/${data.album.id}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+    if (albumRes.ok) {
+      const albumData = (await albumRes.json()) as { genres: string[] }
+      if (albumData.genres?.length) genre = albumData.genres.join(';')
+    }
+  } catch {
+    // genre stays undefined
+  }
+
   return {
     title: data.album.name,
     artist: data.album.artists.map((a) => a.name).join(', '),
     releaseDate: normalizeDate(data.album.release_date || undefined),
     coverUrl: data.album.images[0]?.url,
+    genre,
   }
 }
 
@@ -201,6 +219,7 @@ async function fetchAppleMusicAlbum(albumId: string): Promise<AlbumMetadata> {
       artistName: string
       releaseDate?: string
       artworkUrl100?: string
+      primaryGenreName?: string
     }>
   }
 
@@ -217,6 +236,7 @@ async function fetchAppleMusicAlbum(albumId: string): Promise<AlbumMetadata> {
       ? album.releaseDate.split('T')[0]
       : undefined,
     coverUrl,
+    genre: album.primaryGenreName || undefined,
   }
 }
 
@@ -427,7 +447,7 @@ export async function fetchLastFmAlbumInfo(
   artist: string,
   album: string,
 ): Promise<
-  { coverUrl?: string; mbid?: string; urlLastFm?: string } | undefined
+  { coverUrl?: string; mbid?: string; urlLastFm?: string; genre?: string } | undefined
 > {
   const apiKey = process.env.LASTFM_API_KEY
   if (!apiKey) return undefined
@@ -442,6 +462,7 @@ export async function fetchLastFmAlbumInfo(
         mbid?: string
         url?: string
         image?: Array<{ '#text': string; size: string }>
+        tags?: { tag?: Array<{ name: string }> }
       }
     }
 
@@ -455,11 +476,66 @@ export async function fetchLastFmAlbumInfo(
       }
     }
 
+    const tags = data.album?.tags?.tag ?? []
+    const genre = tags.length
+      ? tags.slice(0, 5).map((t) => t.name).join(';')
+      : undefined
+
     return {
       coverUrl,
       mbid: data.album?.mbid || undefined,
       urlLastFm: data.album?.url || undefined,
+      genre,
     }
+  } catch {
+    return undefined
+  }
+}
+
+export async function searchSpotifyGenres(
+  artist: string,
+  album: string,
+): Promise<string | undefined> {
+  try {
+    const token = await getSpotifyToken()
+    const q = `album:${album} artist:${artist}`
+    const searchRes = await fetch(
+      `https://api.spotify.com/v1/search?q=${encodeURIComponent(q)}&type=album&limit=1`,
+      { headers: { Authorization: `Bearer ${token}` } },
+    )
+    if (!searchRes.ok) return undefined
+    const searchData = (await searchRes.json()) as {
+      albums?: { items?: Array<{ id: string }> }
+    }
+    const albumId = searchData.albums?.items?.[0]?.id
+    if (!albumId) return undefined
+
+    const albumRes = await fetch(`https://api.spotify.com/v1/albums/${albumId}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+    if (!albumRes.ok) return undefined
+    const albumData = (await albumRes.json()) as { genres: string[] }
+    return albumData.genres?.length ? albumData.genres.join(';') : undefined
+  } catch {
+    return undefined
+  }
+}
+
+export async function searchAppleMusicGenre(
+  artist: string,
+  album: string,
+): Promise<string | undefined> {
+  try {
+    const q = `${artist} ${album}`
+    const res = await fetch(
+      `https://itunes.apple.com/search?term=${encodeURIComponent(q)}&entity=album&limit=1`,
+    )
+    if (!res.ok) return undefined
+    const data = (await res.json()) as {
+      results?: Array<{ wrapperType: string; primaryGenreName?: string }>
+    }
+    const result = data.results?.find((r) => r.wrapperType === 'collection')
+    return result?.primaryGenreName || undefined
   } catch {
     return undefined
   }

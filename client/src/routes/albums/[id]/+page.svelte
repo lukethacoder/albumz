@@ -210,6 +210,17 @@
             <span>{album.artist}</span> •
             <span class="capitalize"> {m.release_date()} {album.releaseDate ?? 'Unknown'}</span>
           </h2>
+          {#if album.genre}
+            <p class="mt-1 font-geist text-sm dark:text-neutral-600">
+              {#each album.genre.split(';').map((g) => g.trim()).filter(Boolean) as g, i (g)}
+                {#if i > 0}<span> • </span>{/if}
+                <a
+                  href="/?genres={encodeURIComponent(g)}"
+                  class="transition hover:text-neutral-400 hover:underline"
+                >{g}</a>
+              {/each}
+            </p>
+          {/if}
         </div>
         <div class="mt-4 flex flex-col gap-2">
           {#if error || refreshError}

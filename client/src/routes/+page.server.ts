@@ -56,7 +56,9 @@ export const load: PageServerLoad = async ({ cookies, url }) => {
       ),
     ).sort((a, b) => b - a)
 
-    return { albums, availableYears }
+    const viewMode = cookies.get('viewMode') === 'table' ? 'table' : ('grid' as const)
+
+    return { albums, availableYears, viewMode }
   } catch (error) {
     console.log('error ', error)
     if (error instanceof TRPCClientError && error.data?.code === 'UNAUTHORIZED') {

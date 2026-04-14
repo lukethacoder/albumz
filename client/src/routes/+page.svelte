@@ -5,7 +5,7 @@
   import { page } from '$app/stores'
   import { m } from '$lib/paraglide/messages'
   import { albumsStore } from '$lib/stores/albums.svelte'
-  import { Check, Trash2, X } from '@lucide/svelte'
+  import { Check, Trash2, X, LayoutGrid, List } from '@lucide/svelte'
 
   // albums from server load
   let { data } = $props()
@@ -140,6 +140,17 @@
     selectedIds = new Set()
   }
 
+  let viewMode = $state<'grid' | 'table'>(data.viewMode)
+
+  function setViewMode(mode: 'grid' | 'table') {
+    viewMode = mode
+    fetch('/api/preferences', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ viewMode: mode }),
+    })
+  }
+
   let bulkLoading = $state(false)
 
   async function bulkDelete() {
@@ -231,20 +242,44 @@
         <span class="text-sm text-zinc-600 dark:text-zinc-400">
           {m.showing_albums({ count: resultCount })}
         </span>
-        <button
-          onclick={toggleSelectionMode}
-          class="cursor-pointer text-sm transition
-            {selectionMode
-            ? 'text-emerald-500 hover:text-emerald-400'
-            : 'text-zinc-500 hover:text-zinc-300'}"
-        >
-          {selectionMode ? 'Cancel selection' : 'Select mode'}
-        </button>
+        <div class="flex items-center gap-3">
+          <button
+            onclick={toggleSelectionMode}
+            class="cursor-pointer text-sm transition
+              {selectionMode
+              ? 'text-emerald-500 hover:text-emerald-400'
+              : 'text-zinc-500 hover:text-zinc-300'}"
+          >
+            {selectionMode ? 'Cancel selection' : 'Select mode'}
+          </button>
+          <div class="flex items-center gap-0.5">
+            <button
+              onclick={() => setViewMode('grid')}
+              aria-label="Grid view"
+              class="cursor-pointer rounded p-1 transition
+                {viewMode === 'grid'
+                ? 'text-zinc-200'
+                : 'text-zinc-500 hover:text-zinc-300'}"
+            >
+              <LayoutGrid class="h-4 w-4" />
+            </button>
+            <button
+              onclick={() => setViewMode('table')}
+              aria-label="List view"
+              class="cursor-pointer rounded p-1 transition
+                {viewMode === 'table'
+                ? 'text-zinc-200'
+                : 'text-zinc-500 hover:text-zinc-300'}"
+            >
+              <List class="h-4 w-4" />
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   </div>
 
-  <!-- Albums Grid -->
+  <!-- Albums -->
   <section class="w-full">
     {#if data.albums.length === 0}
       <div class="flex min-h-[400px] items-center justify-center">
@@ -255,7 +290,7 @@
           </p>
         </div>
       </div>
-    {:else}
+    {:else if viewMode === 'grid'}
       <ul
         class="mx-auto grid w-full grid-cols-[repeat(auto-fill,minmax(min(240px,100%),1fr))] gap-2 p-2"
       >
@@ -274,6 +309,46 @@
           </li>
         {/each}
       </ul>
+    {:else}
+      <table class="w-full border-collapse">
+        <thead>
+          <tr class="border-b border-zinc-800">
+            <th class="w-14"></th>
+            <th class="py-2 pr-4 text-left text-xs font-medium tracking-wide text-zinc-500 uppercase"
+              >Album</th
+            >
+            <th class="py-2 pr-4 text-left text-xs font-medium tracking-wide text-zinc-500 uppercase"
+              >Artist</th
+            >
+            <th class="py-2 pr-4 text-left text-xs font-medium tracking-wide text-zinc-500 uppercase"
+              >Year</th
+            >
+            <th class="py-2 pr-4 text-left text-xs font-medium tracking-wide text-zinc-500 uppercase"
+              >Genre</th
+            >
+            <th class="py-2 pr-4 text-left text-xs font-medium tracking-wide text-zinc-500 uppercase"
+              >Date Added</th
+            >
+            <th class="w-20"></th>
+          </tr>
+        </thead>
+        <tbody>
+          {#each data.albums as album (album.id)}
+            <Album.TableRow
+              albumId={album.id}
+              title={album.title}
+              artist={album.artist}
+              releaseDate={album.releaseDate}
+              coverUrl={album.coverUrl}
+              dateCompleted={album.dateCompleted}
+              genre={album.genre}
+              createdAt={album.createdAt}
+              selected={selectedIds.has(album.id)}
+              onToggleSelect={selectionMode ? toggleSelect : undefined}
+            />
+          {/each}
+        </tbody>
+      </table>
     {/if}
   </section>
 </div>

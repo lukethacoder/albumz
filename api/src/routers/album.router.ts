@@ -15,7 +15,6 @@ import {
   fetchCoverArtFromMbid,
   fetchSpotifyPlaylistAlbums,
   searchSpotifyArtwork,
-  searchSpotifyGenres,
   searchAppleMusicGenre,
   parseUrl,
 } from '../services/url-import.service'
@@ -36,6 +35,15 @@ import type { Database } from '../db/database'
 
 function isEnabled(enabledServices: string[], key: string): boolean {
   return enabledServices.length === 0 || enabledServices.includes(key)
+}
+
+function isNumericGenre(genre?: string): boolean {
+  if (!genre) return false
+  return /^\d+s?$/.test(genre.trim())
+}
+
+function toTitleCase(str: string): string {
+  return str.replace(/\b\w/g, (c) => c.toUpperCase())
 }
 
 async function runImportJob(
@@ -65,6 +73,12 @@ async function runImportJob(
         : undefined
     const metadata = await fetchMetadata(url, navidromeConfig)
 
+    // Don't use Spotify's genre metadata — it has poor tagging
+    const { kind } = parseUrl(url)
+    if (kind === 'spotify_album' || kind === 'spotify_track') {
+      metadata.genre = undefined
+    }
+
     updateJob(jobId, { step: 'fetching_artwork' })
     let lastFmCoverUrl: string | undefined
     let lastFmInfo: Awaited<ReturnType<typeof fetchLastFmAlbumInfo>> | undefined
@@ -78,48 +92,61 @@ async function runImportJob(
       caaCover = await fetchCoverArtFromMbid(metadata.mbid)
     }
     // Priority: Spotify image (preferred) > LastFM > CAA > YouTube thumbnail (last resort)
-    const { kind } = parseUrl(url)
     if (kind === 'spotify_album' || kind === 'spotify_track') {
       metadata.coverUrl = metadata.coverUrl ?? lastFmCoverUrl ?? caaCover
     } else {
       metadata.coverUrl = lastFmCoverUrl ?? caaCover ?? metadata.coverUrl
     }
 
-    // Genre fallback chain (import only — enrichAlbum never updates genre)
-    // Step 1: genre from URL import source (already in metadata.genre if Spotify/Apple Music)
-    // Step 2: Navidrome
-    if (!metadata.genre && navidromeConfig && isEnabled(enabled, 'navidrome')) {
+    // Genre: additive merge from Navidrome, LastFM, MusicBrainz (in preference order)
+    // Genres are ';'-separated; duplicates are filtered case-insensitively
+    const genreSet = new Set(
+      (metadata.genre ?? '')
+        .split(';')
+        .map((g) => g.trim())
+        .filter(Boolean),
+    )
+    const addGenres = (raw: string | undefined) => {
+      if (!raw) return
+      raw
+        .split(';')
+        .map((g) => g.trim())
+        .filter(Boolean)
+        .forEach((g) => {
+          if (
+            !isNumericGenre(g) &&
+            ![...genreSet].some((e) => e.toLowerCase() === g.toLowerCase())
+          ) {
+            genreSet.add(toTitleCase(g))
+          }
+        })
+    }
+
+    let serviceContributed = false
+    if (navidromeConfig && isEnabled(enabled, 'navidrome')) {
       const navResult = await fetchNavidromeAlbumUrl(
         metadata.artist,
         metadata.title,
         navidromeConfig,
       )
-      if (navResult?.genre) metadata.genre = navResult.genre
-    }
-    // Step 3: opposite service
-    if (!metadata.genre) {
-      if (
-        (kind === 'spotify_album' || kind === 'spotify_track') &&
-        isEnabled(enabled, 'applemusic')
-      ) {
-        metadata.genre = await searchAppleMusicGenre(metadata.artist, metadata.title)
-      } else if (
-        kind === 'apple_music' &&
-        isEnabled(enabled, 'spotify') &&
-        process.env.SPOTIFY_CLIENT_ID &&
-        process.env.SPOTIFY_CLIENT_SECRET
-      ) {
-        metadata.genre = await searchSpotifyGenres(metadata.artist, metadata.title)
+      if (navResult?.genre) {
+        addGenres(navResult.genre)
+        serviceContributed = true
       }
     }
-    // Step 4: LastFM (already fetched above)
-    if (!metadata.genre && lastFmInfo?.genre) {
-      metadata.genre = lastFmInfo.genre
+    if (
+      !serviceContributed &&
+      isEnabled(enabled, 'lastfm') &&
+      lastFmInfo?.genre
+    ) {
+      addGenres(lastFmInfo.genre)
+      serviceContributed = true
     }
-    // Step 5: MusicBrainz
-    if (!metadata.genre && isEnabled(enabled, 'musicbrainz')) {
-      metadata.genre = await fetchMusicBrainzGenres(metadata.artist, metadata.title)
+    if (!serviceContributed && isEnabled(enabled, 'musicbrainz')) {
+      addGenres(await fetchMusicBrainzGenres(metadata.artist, metadata.title))
     }
+
+    metadata.genre = genreSet.size > 0 ? [...genreSet].join(';') : undefined
 
     updateJob(jobId, { step: 'saving' })
     const albumRepo = new AlbumRepository(db)
@@ -248,7 +275,11 @@ async function runPlaylistImportJob(
  * Best-effort metadata enrichment for a single album.
  * Silently skips steps that fail or lack an MBID — safe to fire-and-forget.
  */
-async function enrichAlbum(albumId: string, userId: string, skipArtwork = false): Promise<void> {
+async function enrichAlbum(
+  albumId: string,
+  userId: string,
+  skipArtwork = false,
+): Promise<void> {
   try {
     const albumRepo = new AlbumRepository(db)
     const albumService = new AlbumService(albumRepo)
@@ -546,7 +577,8 @@ export const albumRouter = router({
       // 2. LastFM
       if (isEnabled(enabled, 'lastfm') && process.env.LASTFM_API_KEY) {
         const info = await fetchLastFmAlbumInfo(input.artist, input.album)
-        if (info?.coverUrl) results.push({ url: info.coverUrl, source: 'lastfm' })
+        if (info?.coverUrl)
+          results.push({ url: info.coverUrl, source: 'lastfm' })
       }
 
       // 3. Navidrome (if configured)
@@ -555,11 +587,15 @@ export const albumRouter = router({
         configRow?.navidromeUrl &&
         configRow?.navidromePassword
       ) {
-        const coverUrl = await fetchNavidromeCoverArtUrl(input.artist, input.album, {
-          url: configRow.navidromeUrl,
-          username: configRow.navidromeUsername!,
-          password: decrypt(configRow.navidromePassword),
-        })
+        const coverUrl = await fetchNavidromeCoverArtUrl(
+          input.artist,
+          input.album,
+          {
+            url: configRow.navidromeUrl,
+            username: configRow.navidromeUsername!,
+            password: decrypt(configRow.navidromePassword),
+          },
+        )
         if (coverUrl) results.push({ url: coverUrl, source: 'navidrome' })
       }
 

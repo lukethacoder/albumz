@@ -207,9 +207,8 @@
           </h1>
           <h2 class="text-md font-geist font-medium dark:text-neutral-500">
             <!-- TODO: artist should be clickable (prefill search) -->
-            <span>{album.artist}</span>{` • `}<span class="capitalize">
-              {m.release_date()} {album.releaseDate ?? 'Unknown'}</span
-            >
+            <span>{album.artist}</span> •
+            <span class="capitalize"> {m.release_date()} {album.releaseDate ?? 'Unknown'}</span>
           </h2>
           {#if album.genre}
             <p class="mt-1 font-geist text-sm dark:text-neutral-600">
@@ -217,7 +216,7 @@
                 .split(';')
                 .map((g) => g.trim())
                 .filter(Boolean) as g, i (g)}
-                {#if i > 0}<span>{` • `}</span>{/if}
+                {#if i > 0}<span>&nbsp;•</span>{/if}
                 <a
                   href="/?genres={encodeURIComponent(g)}"
                   class="transition hover:text-neutral-400 hover:underline">{g}</a

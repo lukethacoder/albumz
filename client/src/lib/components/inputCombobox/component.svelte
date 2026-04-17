@@ -10,12 +10,15 @@
     open = $bindable(false),
     inputProps,
     contentProps,
-    type,
+    type = 'single',
     labelRef = $bindable(null),
     label,
     labelProps,
     ...restProps
   }: RootProps = $props()
+
+  const isChip = $derived(type === 'multiple-chip')
+  const bitsType = $derived(isChip ? 'multiple' : type) as 'single' | 'multiple'
 
   let searchValue = $state('')
 
@@ -32,20 +35,37 @@
     if (!newOpen) searchValue = ''
   }
 
-  const mergedRootProps = $derived(mergeProps(restProps, { onOpenChange: handleOpenChange }))
+  function handleValueChange() {
+    searchValue = ''
+  }
+
+  function removeChip(chipValue: string) {
+    value = ((value as string[]) ?? []).filter((v) => v !== chipValue) as never
+  }
+
+  const mergedRootProps = $derived(
+    mergeProps(restProps, { onOpenChange: handleOpenChange, onValueChange: handleValueChange }),
+  )
+
+  const baseInputClass = cn(
+    'h-9 w-full rounded-md border border-zinc-900/20 bg-transparent pl-3 pr-10 py-1 text-sm text-zinc-700 transition-colors',
+    'placeholder:text-zinc-500',
+    'focus-visible:border-zinc-900/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20',
+    'disabled:cursor-not-allowed disabled:opacity-50',
+    'dark:border-white/15 dark:bg-white/5 dark:text-zinc-300',
+    'dark:focus-visible:border-white/30 dark:focus-visible:ring-white/20',
+  )
+
   const mergedInputProps = $derived(
     mergeProps(inputProps, {
       id,
       oninput: handleInput,
-      class: cn(
-        'h-9 w-full rounded-md border border-zinc-900/20 bg-transparent pl-3 pr-10 py-1 text-sm text-zinc-700 transition-colors',
-        'placeholder:text-zinc-500',
-        'focus-visible:border-zinc-900/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20',
-        'disabled:cursor-not-allowed disabled:opacity-50',
-        'dark:border-white/15 dark:bg-white/5 dark:text-zinc-300',
-        'dark:focus-visible:border-white/30 dark:focus-visible:ring-white/20',
-        inputProps?.class,
-      ),
+      class: isChip
+        ? cn(
+            'min-w-20 flex-1 bg-transparent text-sm outline-none placeholder:text-zinc-400 dark:placeholder:text-zinc-500',
+            inputProps?.class,
+          )
+        : cn(baseInputClass, inputProps?.class),
     }),
   )
 
@@ -55,7 +75,7 @@
       align: 'start',
       class: cn(
         'z-50 w-full overflow-hidden rounded-md border border-zinc-200 bg-white p-1 shadow-lg',
-        'dark:border-zinc-800 dark:bg-zinc-900',
+        'dark:border-zinc-800 dark:bg-zinc-900 max-h-40 overflow-y-auto',
         contentProps?.class,
       ),
     }),
@@ -63,9 +83,14 @@
 
   const mergedLabelProps = $derived(
     mergeProps(labelProps, {
-      class: cn('mb-1.5 block text-sm font-medium text-zinc-700', labelProps?.class),
+      class: cn(
+        'mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300',
+        labelProps?.class,
+      ),
     }),
   )
+
+  const selectedChips = $derived(isChip ? ((value as string[] | undefined) ?? []) : [])
 </script>
 
 <!--
@@ -77,30 +102,68 @@
 <Label.Root for={id} bind:ref={labelRef} {...mergedLabelProps}>
   {label}
 </Label.Root>
-<Combobox.Root {type} {items} bind:value={value as never} bind:open {...mergedRootProps}>
-  <div class="relative">
-    <Combobox.Input {...mergedInputProps} />
-    <Combobox.Trigger
+<Combobox.Root type={bitsType} {items} bind:value={value as never} bind:open {...mergedRootProps}>
+  {#if isChip}
+    <!-- Chip input variant -->
+    <div
       class={cn(
-        'absolute top-0 right-0 inline-flex h-full cursor-pointer items-center justify-center px-3 transition-colors',
-        'text-zinc-500 hover:text-zinc-700',
-        'focus-visible:outline-none',
-        'disabled:pointer-events-none disabled:opacity-50',
-        'dark:text-zinc-500 dark:hover:text-zinc-300',
+        'flex min-h-9 w-full flex-wrap items-center gap-1.5 rounded-md border border-zinc-900/20 bg-transparent px-2 py-1.5 transition-colors',
+        'focus-within:border-zinc-900/40 focus-within:ring-2 focus-within:ring-zinc-900/20',
+        'dark:border-white/15 dark:bg-white/5',
+        'dark:focus-within:border-white/30 dark:focus-within:ring-white/20',
       )}
     >
-      <svg
-        class="size-4"
-        xmlns="http://www.w3.org/2000/svg"
-        fill="none"
-        viewBox="0 0 24 24"
-        stroke="currentColor"
-        stroke-width="2"
+      {#each selectedChips as chip (chip)}
+        <span
+          class="inline-flex items-center gap-1 rounded-md bg-zinc-100 px-2 py-0.5 text-xs font-medium text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300"
+        >
+          {chip}
+          <button
+            type="button"
+            onclick={() => removeChip(chip)}
+            class="ml-0.5 cursor-pointer text-zinc-400 hover:text-zinc-600 dark:text-zinc-500 dark:hover:text-zinc-300"
+            aria-label="Remove {chip}"
+          >
+            <svg
+              class="size-3"
+              viewBox="0 0 12 12"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <path d="M2 2l8 8M10 2l-8 8" />
+            </svg>
+          </button>
+        </span>
+      {/each}
+      <Combobox.Input {...mergedInputProps} />
+    </div>
+  {:else}
+    <!-- Standard single/multiple variant -->
+    <div class="relative">
+      <Combobox.Input {...mergedInputProps} />
+      <Combobox.Trigger
+        class={cn(
+          'absolute top-0 right-0 inline-flex h-full cursor-pointer items-center justify-center px-3 transition-colors',
+          'text-zinc-500 hover:text-zinc-700',
+          'focus-visible:outline-none',
+          'disabled:pointer-events-none disabled:opacity-50',
+          'dark:text-zinc-500 dark:hover:text-zinc-300',
+        )}
       >
-        <path stroke-linecap="round" stroke-linejoin="round" d="M8 9l4 4 4-4" />
-      </svg>
-    </Combobox.Trigger>
-  </div>
+        <svg
+          class="size-4"
+          xmlns="http://www.w3.org/2000/svg"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+          stroke-width="2"
+        >
+          <path stroke-linecap="round" stroke-linejoin="round" d="M8 9l4 4 4-4" />
+        </svg>
+      </Combobox.Trigger>
+    </div>
+  {/if}
   <Combobox.Portal>
     <Combobox.Content {...mergedContentProps}>
       {#each filteredItems as item, i (i + item.value)}

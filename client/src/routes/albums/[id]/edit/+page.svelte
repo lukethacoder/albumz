@@ -2,7 +2,7 @@
   import { goto } from '$app/navigation'
   import { resolve } from '$app/paths'
   import { trpc } from '$lib/trpc/client'
-  import { Button, Input } from '$lib/components'
+  import { Button, Input, InputCombobox } from '$lib/components'
   import { TRPCClientError } from '@trpc/client'
   import { m } from '$lib/paraglide/messages'
   import { translateError } from '$lib/utils'
@@ -10,12 +10,22 @@
   let { data } = $props()
   const { album } = $derived(data)
 
+  const genreOptions = $derived(data.availableGenres.map((g) => ({ value: g, label: g })))
+
   // Metadata tab
   let title = $state(album.title)
   let artist = $state(album.artist)
   let releaseDate = $state(album.releaseDate ?? '')
   let coverUrl = $state(album.coverUrl ?? '')
   let mbid = $state(album.mbid ?? '')
+  let selectedGenres = $state<string[]>(
+    album.genre
+      ? album.genre
+          .split(';')
+          .map((g) => g.trim())
+          .filter(Boolean)
+      : [],
+  )
 
   // External services tab
   let urlLastFm = $state(album.urlLastFm ?? '')
@@ -41,6 +51,7 @@
         releaseDate: releaseDate || undefined,
         coverUrl: coverUrl || undefined,
         mbid: mbid || undefined,
+        genre: selectedGenres.length > 0 ? selectedGenres.join(';') : undefined,
       }
 
       // Add external service URLs if they've been changed
@@ -115,7 +126,6 @@
     </div>
 
     <form onsubmit={handleSubmit} class="space-y-4">
-
       <!-- Metadata Tab -->
       {#if activeTab === 'metadata'}
         <div class="space-y-4">
@@ -146,13 +156,20 @@
             placeholder="e.g. 123e4567-e89b-12d3-a456-426614174000"
             bind:value={mbid}
           />
+          <InputCombobox.Root
+            id="genre-edit"
+            type="multiple-chip"
+            label={m.genre()}
+            items={genreOptions}
+            bind:value={selectedGenres}
+          />
         </div>
       {/if}
 
       <!-- External Services Tab -->
       {#if activeTab === 'external'}
         <div class="space-y-4">
-          <div class="rounded-md bg-zinc-50 p-3 dark:bg-zinc-900/50 mb-4">
+          <div class="mb-4 rounded-md bg-zinc-50 p-3 dark:bg-zinc-900/50">
             <p class="text-xs text-zinc-600 dark:text-zinc-400">
               Add or update URLs for external music services. Leave blank to remove a link.
             </p>

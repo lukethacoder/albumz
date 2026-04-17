@@ -9,8 +9,20 @@ export const load: PageServerLoad = async ({ params, cookies }) => {
   const trpc = createServerTRPCClient(token)
 
   try {
-    const album = await trpc.albums.getById.query({ id: params.id })
-    return { album }
+    const [album, allAlbums] = await Promise.all([
+      trpc.albums.getById.query({ id: params.id }),
+      trpc.albums.list.query({ showCompleted: true, sortBy: 'dateAddedDesc' }),
+    ])
+
+    const availableGenres = Array.from(
+      new Set(
+        allAlbums.flatMap((a) =>
+          a.genre ? a.genre.split(';').map((g) => g.trim()).filter(Boolean) : [],
+        ),
+      ),
+    ).sort()
+
+    return { album, availableGenres }
   } catch (error) {
     if (error instanceof TRPCClientError && error.data?.code === 'UNAUTHORIZED') {
       throw redirect(307, resolve('/auth/login'))

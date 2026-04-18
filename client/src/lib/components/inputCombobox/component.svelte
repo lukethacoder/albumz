@@ -24,8 +24,10 @@
   let searchValue = $state('')
 
   const filteredItems = $derived.by(() => {
-    if (searchValue === '') return items
-    return items.filter((item) => item.label.toLowerCase().includes(searchValue.toLowerCase()))
+    const selected = isChip ? ((value as string[] | undefined) ?? []) : []
+    const base = isChip ? items.filter((item) => !selected.includes(item.value)) : items
+    if (searchValue === '') return base
+    return base.filter((item) => item.label.toLowerCase().includes(searchValue.toLowerCase()))
   })
 
   function handleOpenChange(newOpen: boolean) {
@@ -122,17 +124,17 @@
         >
           {#each selectedChips as chip (chip)}
             <span
-              class="inline-flex items-center gap-1 rounded-md bg-zinc-100 px-2 py-0.5 text-xs font-medium text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300"
+              class="flex items-center gap-1 rounded-full bg-emerald-500/20 px-2 py-0.5 text-xs text-emerald-400"
             >
               {chip}
               <button
                 type="button"
                 onclick={() => removeChip(chip)}
-                class="ml-0.5 cursor-pointer text-zinc-500 hover:text-zinc-300"
+                class="ml-0.5 cursor-pointer opacity-70 hover:opacity-100"
                 aria-label="Remove {chip}"
               >
                 <svg
-                  class="size-3"
+                  class="size-2"
                   viewBox="0 0 12 12"
                   fill="none"
                   stroke="currentColor"

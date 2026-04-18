@@ -242,7 +242,9 @@
             >
               {#snippet iconLeft()}
                 {#if isComplete}
-                  <Check />
+                  <Check class="h-full" />
+                {:else}
+                  <X class="h-full" />
                 {/if}
               {/snippet}
               {isComplete ? m.mark_incomplete() : m.mark_complete()}

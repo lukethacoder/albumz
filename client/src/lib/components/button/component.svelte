@@ -21,9 +21,9 @@
 
   // ─── Size ────────────────────────────────────────────────────────────────────
   const sizeClasses: Record<Size, string> = {
-    sm: 'px-2.5 py-0.5 text-xs  gap-0.5',
-    md: 'px-3   py-1   text-sm  gap-0.5',
-    lg: 'px-4   py-1.5 text-sm  gap-1',
+    sm: 'px-2 py-0.5 text-xs gap-1',
+    md: 'px-2.5 py-1 text-sm gap-1.5',
+    lg: 'px-3.5 py-1.5 text-sm gap-2',
   }
 
   const iconSizeClasses: Record<Size, string> = {
@@ -98,7 +98,7 @@
   {...rest}
   class={cn(
     // ── Base — preserves your exact structural choices ─────────────────────────
-    'inline-flex cursor-pointer justify-center overflow-hidden rounded-md font-geist transition',
+    'inline-flex cursor-pointer items-center justify-center overflow-hidden rounded-md font-geist transition',
     // ── Focus ring ────────────────────────────────────────────────────────────
     'focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none',
     'focus-visible:ring-offset-white dark:focus-visible:ring-offset-zinc-900',
@@ -129,7 +129,7 @@
       />
     </svg>
   {:else if iconLeft}
-    <span class="flex {iconSizeClasses[size]}">
+    <span class="flex {iconSizeClasses[size]} items-center justify-center">
       {@render iconLeft()}
     </span>
   {/if}

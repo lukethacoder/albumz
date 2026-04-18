@@ -15,6 +15,7 @@
     labelRef = $bindable(null),
     label,
     labelProps,
+    placeholder,
     ...restProps
   }: RootProps = $props()
 
@@ -61,6 +62,7 @@
   const mergedInputProps = $derived(
     mergeProps(inputProps, {
       id,
+      placeholder,
       class: isChip
         ? cn(
             'min-w-20 flex-1 bg-transparent text-sm outline-none placeholder:text-zinc-500 border-none',
@@ -148,13 +150,14 @@
           <input
             {...bitsProps}
             value={searchValue}
+            placeholder={selectedChips.length === 0 ? placeholder : undefined}
             onclick={() => (open = true)}
             oninput={(e) => {
               searchValue = e.currentTarget.value
               bitsProps.oninput?.(e)
             }}
             class={cn(
-              'min-w-20 flex-1 border-none bg-transparent py-0 text-sm outline-none placeholder:text-zinc-500',
+              'min-w-20 flex-1 border-none bg-transparent px-1 py-0 text-sm ring-0 outline-none placeholder:text-zinc-500',
               inputProps?.class,
             )}
           />

@@ -39,6 +39,7 @@
   "release_date_newest": "Release Date (Newest)",
   "release_date_oldest": "Release Date (Oldest)",
   "any": "Any",
+  "all": "All",
   "showing_albums": "Showing {count, plural, one {# album} other {# albums}}",
   "failed_to_refresh_metadata": "Failed to refresh metadata.",
   "error_must_be_logged_in": "You must be logged in to access this resource.",

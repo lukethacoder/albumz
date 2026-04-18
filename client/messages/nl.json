@@ -39,6 +39,7 @@
   "release_date_newest": "Releasedatum (nieuwste)",
   "release_date_oldest": "Releasedatum (oudste)",
   "any": "Alle",
+  "all": "Alles",
   "showing_albums": "{count, plural, one {# album} other {# albums}} weergegeven",
   "failed_to_refresh_metadata": "Metadata vernieuwen mislukt.",
   "error_must_be_logged_in": "Je moet ingelogd zijn om toegang te krijgen tot deze bron.",

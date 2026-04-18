@@ -35,9 +35,7 @@
     })),
   ])
 
-  const genreOptions = $derived(
-    data.availableGenres.map((g) => ({ value: g, label: g })),
-  )
+  const genreOptions = $derived(data.availableGenres.map((g) => ({ value: g, label: g })))
 
   // Sync URL params to local state (handles initial load and browser back/forward)
   $effect(() => {
@@ -196,14 +194,30 @@
   <!-- Search and Filter Section -->
   <div class="border-b border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900">
     <div class="mx-auto max-w-7xl space-y-4">
-      <!-- Search -->
-      <div class="w-full max-w-2xl">
-        <Input.Root
-          label={m.search_albums()}
-          type="text"
-          placeholder={m.search_placeholder()}
-          bind:value={searchQuery}
-        />
+      <div class="flex w-full gap-4">
+        <!-- Search -->
+        <div class="w-full max-w-2xl">
+          <Input.Root
+            label={m.search_albums()}
+            type="text"
+            placeholder={m.search_placeholder()}
+            bind:value={searchQuery}
+          />
+        </div>
+
+        <!-- Genre Filter -->
+        {#if data.availableGenres.length > 0}
+          <div class="w-full">
+            <InputCombobox.Root
+              id="genre-filter"
+              type="multiple-chip"
+              label={m.genre()}
+              placeholder={m.all()}
+              items={genreOptions}
+              bind:value={selectedGenres}
+            />
+          </div>
+        {/if}
       </div>
 
       <!-- Filters Row -->
@@ -228,35 +242,6 @@
             />
           </div>
         </div>
-
-        <!-- Genre Filter -->
-        {#if data.availableGenres.length > 0}
-          <div class="w-52">
-            <InputCombobox.Root
-              id="genre-filter"
-              type="multiple"
-              label="Genre"
-              items={genreOptions}
-              bind:value={selectedGenres}
-            />
-            {#if selectedGenres.length > 0}
-              <div class="mt-1.5 flex flex-wrap gap-1">
-                {#each selectedGenres as g (g)}
-                  <span
-                    class="flex items-center gap-1 rounded-full bg-emerald-500/20 px-2 py-0.5 text-xs text-emerald-400"
-                  >
-                    {g}
-                    <button
-                      onclick={() => (selectedGenres = selectedGenres.filter((s) => s !== g))}
-                      aria-label="Remove {g}"
-                      class="cursor-pointer opacity-70 hover:opacity-100"
-                    >×</button>
-                  </span>
-                {/each}
-              </div>
-            {/if}
-          </div>
-        {/if}
 
         <!-- Show Completed Checkbox -->
         <div class="mb-2">
@@ -294,9 +279,7 @@
               onclick={() => setViewMode('grid')}
               aria-label="Grid view"
               class="cursor-pointer rounded p-1 transition
-                {viewMode === 'grid'
-                ? 'text-zinc-200'
-                : 'text-zinc-500 hover:text-zinc-300'}"
+                {viewMode === 'grid' ? 'text-zinc-200' : 'text-zinc-500 hover:text-zinc-300'}"
             >
               <LayoutGrid class="h-4 w-4" />
             </button>
@@ -304,9 +287,7 @@
               onclick={() => setViewMode('table')}
               aria-label="List view"
               class="cursor-pointer rounded p-1 transition
-                {viewMode === 'table'
-                ? 'text-zinc-200'
-                : 'text-zinc-500 hover:text-zinc-300'}"
+                {viewMode === 'table' ? 'text-zinc-200' : 'text-zinc-500 hover:text-zinc-300'}"
             >
               <List class="h-4 w-4" />
             </button>
@@ -351,19 +332,24 @@
         <thead>
           <tr class="border-b border-zinc-800">
             <th class="w-14"></th>
-            <th class="py-2 pr-4 text-left text-xs font-medium tracking-wide text-zinc-500 uppercase"
+            <th
+              class="py-2 pr-4 text-left text-xs font-medium tracking-wide text-zinc-500 uppercase"
               >Album</th
             >
-            <th class="py-2 pr-4 text-left text-xs font-medium tracking-wide text-zinc-500 uppercase"
+            <th
+              class="py-2 pr-4 text-left text-xs font-medium tracking-wide text-zinc-500 uppercase"
               >Artist</th
             >
-            <th class="py-2 pr-4 text-left text-xs font-medium tracking-wide text-zinc-500 uppercase"
+            <th
+              class="py-2 pr-4 text-left text-xs font-medium tracking-wide text-zinc-500 uppercase"
               >Year</th
             >
-            <th class="py-2 pr-4 text-left text-xs font-medium tracking-wide text-zinc-500 uppercase"
+            <th
+              class="py-2 pr-4 text-left text-xs font-medium tracking-wide text-zinc-500 uppercase"
               >Genre</th
             >
-            <th class="py-2 pr-4 text-left text-xs font-medium tracking-wide text-zinc-500 uppercase"
+            <th
+              class="py-2 pr-4 text-left text-xs font-medium tracking-wide text-zinc-500 uppercase"
               >Date Added</th
             >
             <th class="w-20"></th>

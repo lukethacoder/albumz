@@ -9,4 +9,5 @@ export type RootProps = Omit<Combobox.RootProps, 'type'> & {
   labelRef?: HTMLLabelElement | null
   labelProps?: WithoutChildrenOrChild<Label.RootProps>
   type?: 'single' | 'multiple' | 'multiple-chip'
+  placeholder?: string
 }

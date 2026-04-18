@@ -177,6 +177,12 @@
     }
   }
 
+  function handleKeydown(e: KeyboardEvent) {
+    if (selectionMode && selectedIds.size > 0 && e.key === 'Delete') {
+      void bulkDelete()
+    }
+  }
+
   async function bulkToggleComplete() {
     const markComplete = !allSelectedComplete
     bulkLoading = true
@@ -253,6 +259,7 @@
   )
 </script>
 
+<svelte:window onkeydown={handleKeydown} />
 <svelte:head>
   <title>Home - Albumz</title>
 </svelte:head>

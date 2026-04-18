@@ -15,6 +15,7 @@ let totalAlbums = $state<number | null>(null)
 let processedAlbums = $state<number | null>(null)
 
 let pollInterval: ReturnType<typeof setInterval> | null = null
+let lastProcessedAlbums = 0
 
 function stopPolling() {
   if (pollInterval !== null) {
@@ -31,7 +32,12 @@ async function poll() {
     step = result.step
     errorMsg = result.error
     totalAlbums = result.totalAlbums ?? null
-    processedAlbums = result.processedAlbums ?? null
+    const newProcessed = result.processedAlbums ?? 0
+    if (newProcessed > lastProcessedAlbums) {
+      lastProcessedAlbums = newProcessed
+      void invalidateAll()
+    }
+    processedAlbums = newProcessed
 
     if (result.status === 'complete') {
       stopPolling()
@@ -79,6 +85,7 @@ export const importStore = {
     status = 'pending'
     step = null
     errorMsg = null
+    lastProcessedAlbums = 0
     localStorage.setItem(STORAGE_KEY, id)
     void poll()
     pollInterval = setInterval(() => void poll(), POLL_INTERVAL_MS)
@@ -100,6 +107,7 @@ export const importStore = {
     errorMsg = null
     totalAlbums = null
     processedAlbums = null
+    lastProcessedAlbums = 0
     localStorage.removeItem(STORAGE_KEY)
   },
 }

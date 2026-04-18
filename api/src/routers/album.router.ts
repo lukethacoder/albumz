@@ -250,6 +250,15 @@ async function runPlaylistImportJob(
         )
         if (lastFm?.coverUrl) metadata.coverUrl = lastFm.coverUrl
         if (lastFm?.mbid) metadata.mbid = lastFm.mbid
+        if (lastFm?.genre) {
+          const filtered = lastFm.genre
+            .split(';')
+            .map((g) => g.trim())
+            .filter((g) => g && !isNumericGenre(g))
+            .map(toTitleCase)
+            .join(';')
+          if (filtered) metadata.genre = filtered
+        }
       }
 
       const created = await albumService.create(metadata, userId)
@@ -295,8 +304,8 @@ async function enrichAlbum(
     const updates: Record<string, unknown> = {}
     let mbid = album.mbid
 
-    // Try Navidrome to resolve MBID if not already set
-    if (!mbid && configRow?.navidromeUrl && isEnabled(enabled, 'navidrome')) {
+    // Try Navidrome — resolves MBID and URL in one call
+    if (configRow?.navidromeUrl && isEnabled(enabled, 'navidrome')) {
       const navResult = await fetchNavidromeAlbumUrl(
         album.artist,
         album.title,
@@ -306,9 +315,11 @@ async function enrichAlbum(
           password: decrypt(configRow.navidromePassword!),
         },
       )
-      if (navResult?.mbid) {
-        mbid = navResult.mbid
-        updates.mbid = mbid
+      if (navResult) {
+        if (navResult.mbid && !mbid) {
+          mbid = navResult.mbid
+          updates.mbid = mbid
+        }
         updates.urlNavidrome = navResult.relativeUrl
       }
     }
@@ -341,23 +352,6 @@ async function enrichAlbum(
         updates.urlYoutubeMusic = mb.urlYoutubeMusic
       if (mb.urlRateYourMusic && isEnabled(enabled, 'rateyourmusic'))
         updates.urlRateYourMusic = mb.urlRateYourMusic
-    }
-
-    if (
-      !updates.urlNavidrome &&
-      configRow?.navidromeUrl &&
-      isEnabled(enabled, 'navidrome')
-    ) {
-      const navResult = await fetchNavidromeAlbumUrl(
-        album.artist,
-        album.title,
-        {
-          url: configRow.navidromeUrl,
-          username: configRow.navidromeUsername!,
-          password: decrypt(configRow.navidromePassword!),
-        },
-      )
-      if (navResult) updates.urlNavidrome = navResult.relativeUrl
     }
 
     if (Object.keys(updates).length > 0) {

@@ -261,7 +261,16 @@ async function runPlaylistImportJob(
         }
       }
 
-      const created = await albumService.create(metadata, userId)
+      const created = await albumRepo.create({
+        userId,
+        title: metadata.title,
+        artist: metadata.artist,
+        releaseDate: metadata.releaseDate ?? null,
+        coverUrl: metadata.coverUrl ?? null,
+        mbid: metadata.mbid ?? null,
+        genre: metadata.genre ?? null,
+        ...(metadata.addedAt ? { createdAt: metadata.addedAt } : {}),
+      })
       createdAlbumIds.push(created.id)
 
       updateJob(jobId, { processedAlbums: i + 1 })

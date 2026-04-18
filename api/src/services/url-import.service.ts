@@ -5,7 +5,9 @@ import { fetchNavidromeAlbumUrl } from './navidrome.service'
 export type AlbumMetadata = Pick<
   CreateAlbumInput,
   'title' | 'artist' | 'releaseDate' | 'coverUrl' | 'mbid' | 'genre'
->
+> & {
+  addedAt?: Date
+}
 
 /**
  * Normalize external date strings to YYYY-MM-DD.
@@ -320,6 +322,7 @@ export async function fetchSpotifyPlaylistAlbums(
 
   type TrackPage = {
     items: Array<{
+      added_at: string
       track: {
         album: {
           id: string
@@ -335,7 +338,7 @@ export async function fetchSpotifyPlaylistAlbums(
 
   let nextUrl: string | null =
     `https://api.spotify.com/v1/playlists/${playlistId}/tracks` +
-    `?limit=100&fields=next,items(track(album(id,name,artists,release_date,images)))`
+    `?limit=100&fields=next,items(added_at,track(album(id,name,artists,release_date,images)))`
 
   while (nextUrl) {
     const res = await fetch(nextUrl, {
@@ -354,6 +357,7 @@ export async function fetchSpotifyPlaylistAlbums(
         artist: album.artists.map((a) => a.name).join(', '),
         releaseDate: normalizeDate(album.release_date || undefined),
         coverUrl: album.images[0]?.url,
+        addedAt: item.added_at ? new Date(item.added_at) : undefined,
       })
     }
 

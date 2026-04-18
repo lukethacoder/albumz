@@ -3,7 +3,7 @@
   import { Check, Disc, Trash2 } from '@lucide/svelte'
   import { albumsStore } from '$lib/stores/albums.svelte'
   import { getRelativeTime } from '$lib/utils'
-  import { StarRating } from '$lib/components'
+  import { StarRating, Tooltip } from '$lib/components'
   import type { RootProps } from './types'
 
   let {
@@ -120,7 +120,18 @@
 
   <!-- Date added -->
   <td class="py-2 pr-4 text-sm dark:text-neutral-500">
-    {createdAt ? getRelativeTime(new Date(createdAt), new Date(), true) : '—'}
+    {#if createdAt}
+      <Tooltip.Root>
+        {#snippet trigger()}
+          <span class="cursor-default">{getRelativeTime(new Date(createdAt), new Date(), true)}</span>
+        {/snippet}
+        {#snippet children()}
+          {new Date(createdAt).toLocaleDateString(navigator.language, { day: 'numeric', month: 'short', year: 'numeric' })}
+        {/snippet}
+      </Tooltip.Root>
+    {:else}
+      —
+    {/if}
   </td>
 
   <!-- Actions -->

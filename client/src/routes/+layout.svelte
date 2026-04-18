@@ -11,6 +11,7 @@
   import { importStore } from '$lib/stores/import.svelte'
   import { m } from '$lib/paraglide/messages'
   import { resolve } from '$app/paths'
+  import { Tooltip } from '$lib/components/tooltip'
 
   let { children } = $props()
 
@@ -63,7 +64,9 @@
   </div>
 </nav>
 
-{@render children()}
+<Tooltip.Provider>
+  {@render children()}
+</Tooltip.Provider>
 
 <ImportStatus.Root />
 

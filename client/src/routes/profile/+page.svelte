@@ -4,7 +4,7 @@
   import { getLocale, locales, setLocale } from '$lib/paraglide/runtime'
   import { Button, InputSelect } from '$lib/components'
   import { m } from '$lib/paraglide/messages.js'
-  import { Check, X } from '@lucide/svelte'
+  import { Check, X, Download, Upload } from '@lucide/svelte'
 
   const ALL_SERVICES = [
     { key: 'lastfm', label: 'Last.fm' },
@@ -18,6 +18,45 @@
 
   let { data } = $props()
   const user = $derived(data.user)
+
+  // CSV export
+  async function handleExport() {
+    const csv = await trpc.albums.exportCsv.query()
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `albumz-export-${new Date().toISOString().slice(0, 10)}.csv`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
+  // CSV import
+  let importLoading = $state(false)
+  let importMessage = $state<{ type: 'success' | 'error'; text: string } | null>(null)
+  let fileInput: HTMLInputElement
+
+  async function handleImport() {
+    fileInput.click()
+  }
+
+  async function handleFileChange(e: Event) {
+    const file = (e.currentTarget as HTMLInputElement).files?.[0]
+    if (!file) return
+    importLoading = true
+    importMessage = null
+    try {
+      const csv = await file.text()
+      const result = await trpc.albums.importCsv.mutate({ csv })
+      importMessage = { type: 'success', text: m.csv_import_success({ created: result.created, skipped: result.skipped }) }
+      await invalidateAll()
+    } catch {
+      importMessage = { type: 'error', text: m.csv_import_error() }
+    } finally {
+      importLoading = false
+      fileInput.value = ''
+    }
+  }
 
   // Only show services that have their server-side credentials configured
   const availableServices = $derived(
@@ -243,6 +282,41 @@
           {/if}
         </div>
       </div>
+    </div>
+
+    <div>
+      <h2 class="mb-4 text-xl font-semibold">{m.data()}</h2>
+
+      <input
+        bind:this={fileInput}
+        type="file"
+        accept=".csv,text/csv"
+        class="hidden"
+        onchange={handleFileChange}
+      />
+
+      <div class="flex items-center gap-3">
+        <Button.Root variant="outline" theme="neutral" onclick={handleExport}>
+          <Download class="h-4 w-4" />
+          {m.export_csv()}
+        </Button.Root>
+        <Button.Root variant="outline" theme="neutral" onclick={handleImport} disabled={importLoading}>
+          {#if importLoading}
+            <svg class="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+            </svg>
+          {:else}
+            <Upload class="h-4 w-4" />
+          {/if}
+          {m.import_csv()}
+        </Button.Root>
+      </div>
+
+      {#if importMessage}
+        <p class="mt-3 text-sm {importMessage.type === 'success' ? 'text-emerald-400' : 'text-red-400'}">
+          {importMessage.text}
+        </p>
+      {/if}
     </div>
 
     <div>

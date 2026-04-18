@@ -607,4 +607,107 @@ export const albumRouter = router({
 
       return results
     }),
+
+  exportCsv: protectedProcedure.query(async ({ ctx }) => {
+    const albumRepo = new AlbumRepository(ctx.db)
+    const albumService = new AlbumService(albumRepo)
+    const rows = await albumService.findAll(ctx.user.id, { completionFilter: 'all', sortBy: 'dateAddedDesc' })
+
+    const COLUMNS = [
+      'id', 'title', 'artist', 'genre', 'releaseDate', 'description', 'coverUrl',
+      'rating', 'dateCompleted', 'createdAt', 'updatedAt', 'mbid',
+      'urlLastFm', 'urlSpotify', 'urlAppleMusic', 'urlYoutube', 'urlYoutubeMusic',
+      'urlRateYourMusic', 'urlNavidrome',
+    ] as const
+
+    function escapeCsv(value: unknown): string {
+      if (value === null || value === undefined) return ''
+      const str = value instanceof Date ? value.toISOString() : String(value)
+      if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+        return `"${str.replace(/"/g, '""')}"`
+      }
+      return str
+    }
+
+    const header = COLUMNS.join(',')
+    const body = rows.map((row) =>
+      COLUMNS.map((col) => escapeCsv(row[col as keyof typeof row])).join(',')
+    ).join('\n')
+
+    return `${header}\n${body}`
+  }),
+
+  importCsv: protectedProcedure
+    .input(z.object({ csv: z.string().min(1) }))
+    .mutation(async ({ input, ctx }) => {
+      const lines = input.csv.replace(/\r\n/g, '\n').replace(/\r/g, '\n').trim().split('\n')
+      if (lines.length < 2) return { created: 0, skipped: 0 }
+
+      function parseCsvLine(line: string): string[] {
+        const fields: string[] = []
+        let current = ''
+        let inQuotes = false
+        for (let i = 0; i < line.length; i++) {
+          const ch = line[i]
+          if (inQuotes) {
+            if (ch === '"' && line[i + 1] === '"') { current += '"'; i++ }
+            else if (ch === '"') inQuotes = false
+            else current += ch
+          } else {
+            if (ch === '"') inQuotes = true
+            else if (ch === ',') { fields.push(current); current = '' }
+            else current += ch
+          }
+        }
+        fields.push(current)
+        return fields
+      }
+
+      const headers = parseCsvLine(lines[0])
+      const albumRepo = new AlbumRepository(ctx.db)
+      let created = 0
+      let skipped = 0
+
+      for (const line of lines.slice(1)) {
+        if (!line.trim()) continue
+        const values = parseCsvLine(line)
+        const row: Record<string, string> = {}
+        headers.forEach((h, i) => { row[h] = values[i] ?? '' })
+
+        const title = row.title?.trim()
+        const artist = row.artist?.trim()
+        if (!title || !artist) { skipped++; continue }
+
+        const existing = await albumRepo.findByTitleAndArtist(title, artist, ctx.user.id)
+        if (existing) { skipped++; continue }
+
+        try {
+          await albumRepo.create({
+            userId: ctx.user.id,
+            title,
+            artist,
+            genre: row.genre || null,
+            releaseDate: row.releaseDate || null,
+            description: row.description || null,
+            coverUrl: row.coverUrl || null,
+            rating: row.rating ? parseFloat(row.rating) : null,
+            dateCompleted: row.dateCompleted ? new Date(row.dateCompleted) : null,
+            mbid: row.mbid || null,
+            urlLastFm: row.urlLastFm || null,
+            urlSpotify: row.urlSpotify || null,
+            urlAppleMusic: row.urlAppleMusic || null,
+            urlYoutube: row.urlYoutube || null,
+            urlYoutubeMusic: row.urlYoutubeMusic || null,
+            urlRateYourMusic: row.urlRateYourMusic || null,
+            urlNavidrome: row.urlNavidrome || null,
+            ...(row.createdAt ? { createdAt: new Date(row.createdAt) } : {}),
+          })
+          created++
+        } catch {
+          skipped++
+        }
+      }
+
+      return { created, skipped }
+    }),
 })

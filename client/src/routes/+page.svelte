@@ -1,6 +1,6 @@
 <script lang="ts">
   import { Album } from '$lib/components/album/index.js'
-  import { Input, InputCombobox, InputSelect } from '$lib/components'
+  import { Input, InputCombobox, InputSelect, Tooltip } from '$lib/components'
   import { goto } from '$app/navigation'
   import { page } from '$app/stores'
   import { m } from '$lib/paraglide/messages'
@@ -284,22 +284,32 @@
             {selectionMode ? 'Cancel selection' : 'Select mode'}
           </button>
           <div class="flex items-center gap-0.5">
-            <button
-              onclick={() => setViewMode('grid')}
-              aria-label="Grid view"
-              class="cursor-pointer rounded p-1 transition
-                {viewMode === 'grid' ? 'text-zinc-200' : 'text-zinc-500 hover:text-zinc-300'}"
-            >
-              <LayoutGrid class="h-4 w-4" />
-            </button>
-            <button
-              onclick={() => setViewMode('table')}
-              aria-label="List view"
-              class="cursor-pointer rounded p-1 transition
-                {viewMode === 'table' ? 'text-zinc-200' : 'text-zinc-500 hover:text-zinc-300'}"
-            >
-              <List class="h-4 w-4" />
-            </button>
+            <Tooltip.Root>
+              {#snippet trigger()}
+                <button
+                  onclick={() => setViewMode('grid')}
+                  aria-label="Grid view"
+                  class="cursor-pointer rounded p-1 transition
+                    {viewMode === 'grid' ? 'text-zinc-200' : 'text-zinc-500 hover:text-zinc-300'}"
+                >
+                  <LayoutGrid class="h-4 w-4" />
+                </button>
+              {/snippet}
+              {#snippet children()}Grid view{/snippet}
+            </Tooltip.Root>
+            <Tooltip.Root>
+              {#snippet trigger()}
+                <button
+                  onclick={() => setViewMode('table')}
+                  aria-label="List view"
+                  class="cursor-pointer rounded p-1 transition
+                    {viewMode === 'table' ? 'text-zinc-200' : 'text-zinc-500 hover:text-zinc-300'}"
+                >
+                  <List class="h-4 w-4" />
+                </button>
+              {/snippet}
+              {#snippet children()}List view{/snippet}
+            </Tooltip.Root>
           </div>
         </div>
       </div>

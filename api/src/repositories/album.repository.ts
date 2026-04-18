@@ -92,6 +92,16 @@ export class AlbumRepository {
       .orderBy(albums.releaseDate)
   }
 
+  async findByTitleAndArtist(title: string, artist: string, userId: string): Promise<Album | undefined> {
+    const [album] = await this.db
+      .select()
+      .from(albums)
+      .where(and(eq(albums.title, title), eq(albums.artist, artist), eq(albums.userId, userId)))
+      .limit(1)
+
+    return album
+  }
+
   async create(data: NewAlbum): Promise<Album> {
     const [album] = await this.db.insert(albums).values(data).returning()
 

@@ -261,6 +261,19 @@ async function runPlaylistImportJob(
         }
       }
 
+      if (!metadata.genre && isEnabled(enabled, 'musicbrainz')) {
+        const mbGenres = await fetchMusicBrainzGenres(metadata.artist, metadata.title)
+        if (mbGenres) {
+          const filtered = mbGenres
+            .split(';')
+            .map((g) => g.trim())
+            .filter((g) => g && !isNumericGenre(g))
+            .map(toTitleCase)
+            .join(';')
+          if (filtered) metadata.genre = filtered
+        }
+      }
+
       const created = await albumRepo.create({
         userId,
         title: metadata.title,

@@ -208,8 +208,11 @@
             {album.title}
           </h1>
           <h2 class="text-md font-geist font-medium dark:text-neutral-500">
-            <!-- TODO: artist should be clickable (prefill search) -->
-            <span>{album.artist}</span> •
+            {#each album.artist.split(';').map((a) => a.trim()).filter(Boolean) as a, i (a)}
+              {#if i > 0}<span>, </span>{/if}
+              <a href="/?search={encodeURIComponent(a)}" class="hover:underline">{a}</a>
+            {/each}
+            •
             <span class="capitalize"> {m.release_date()} {album.releaseDate ?? 'Unknown'}</span>
           </h2>
           {#if album.genre}

@@ -111,7 +111,7 @@ async function fetchSpotifyAlbum(albumId: string): Promise<AlbumMetadata> {
 
   return {
     title: data.name,
-    artist: data.artists.map((a) => a.name).join(', '),
+    artist: data.artists.map((a) => a.name).join('; '),
     releaseDate: normalizeDate(data.release_date || undefined),
     coverUrl: data.images[0]?.url,
     genre: data.genres?.length ? data.genres.join(';') : undefined,
@@ -151,7 +151,7 @@ async function fetchSpotifyTrack(trackId: string): Promise<AlbumMetadata> {
 
   return {
     title: data.album.name,
-    artist: data.album.artists.map((a) => a.name).join(', '),
+    artist: data.album.artists.map((a) => a.name).join('; '),
     releaseDate: normalizeDate(data.album.release_date || undefined),
     coverUrl: data.album.images[0]?.url,
     genre,
@@ -354,7 +354,7 @@ export async function fetchSpotifyPlaylistAlbums(
       seen.add(album.id)
       albums.push({
         title: album.name,
-        artist: album.artists.map((a) => a.name).join(', '),
+        artist: album.artists.map((a) => a.name).join('; '),
         releaseDate: normalizeDate(album.release_date || undefined),
         coverUrl: album.images[0]?.url,
         addedAt: item.added_at ? new Date(item.added_at) : undefined,
@@ -456,44 +456,57 @@ export async function fetchLastFmAlbumInfo(
   const apiKey = process.env.LASTFM_API_KEY
   if (!apiKey) return undefined
 
-  try {
-    const url = `https://ws.audioscrobbler.com/2.0/?method=album.getinfo&api_key=${encodeURIComponent(apiKey)}&artist=${encodeURIComponent(artist)}&album=${encodeURIComponent(album)}&format=json`
-    const res = await fetch(url)
-    if (!res.ok) return undefined
+  async function query(artistName: string) {
+    try {
+      const url = `https://ws.audioscrobbler.com/2.0/?method=album.getinfo&api_key=${encodeURIComponent(apiKey!)}&artist=${encodeURIComponent(artistName)}&album=${encodeURIComponent(album)}&format=json`
+      const res = await fetch(url)
+      if (!res.ok) return undefined
 
-    const data = (await res.json()) as {
-      album?: {
-        mbid?: string
-        url?: string
-        image?: Array<{ '#text': string; size: string }>
-        tags?: { tag?: Array<{ name: string }> }
+      const data = (await res.json()) as {
+        album?: {
+          mbid?: string
+          url?: string
+          image?: Array<{ '#text': string; size: string }>
+          tags?: { tag?: Array<{ name: string }> }
+        }
       }
-    }
 
-    const images = data.album?.image ?? []
-    let coverUrl: string | undefined
-    for (const size of ['extralarge', 'large', 'medium', 'small']) {
-      const img = images.find((i) => i.size === size && i['#text'])
-      if (img?.['#text']) {
-        coverUrl = img['#text']
-        break
+      if (!data.album) return undefined
+
+      const images = data.album.image ?? []
+      let coverUrl: string | undefined
+      for (const size of ['extralarge', 'large', 'medium', 'small']) {
+        const img = images.find((i) => i.size === size && i['#text'])
+        if (img?.['#text']) {
+          coverUrl = img['#text']
+          break
+        }
       }
-    }
 
-    const tags = data.album?.tags?.tag ?? []
-    const genre = tags.length
-      ? tags.slice(0, 5).map((t) => t.name).join(';')
-      : undefined
+      const tags = data.album.tags?.tag ?? []
+      const genre = tags.length
+        ? tags.slice(0, 5).map((t) => t.name).join(';')
+        : undefined
 
-    return {
-      coverUrl,
-      mbid: data.album?.mbid || undefined,
-      urlLastFm: data.album?.url || undefined,
-      genre,
+      return {
+        coverUrl,
+        mbid: data.album.mbid || undefined,
+        urlLastFm: data.album.url || undefined,
+        genre,
+      }
+    } catch {
+      return undefined
     }
-  } catch {
-    return undefined
   }
+
+  const result = await query(artist)
+  if (result) return result
+
+  // Retry with only the first artist (handles "Artist1, Artist2" from Spotify)
+  const firstArtist = artist.split(';')[0].trim()
+  if (firstArtist !== artist) return query(firstArtist)
+
+  return undefined
 }
 
 export async function searchSpotifyGenres(

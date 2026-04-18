@@ -17,6 +17,7 @@
   }: RootProps = $props()
 
   const releaseDateFormatted = $derived(releaseDate ? releaseDate.split('-')[0] : 'Unknown')
+  const artists = $derived(artist.split(';').map((a) => a.trim()).filter(Boolean))
 
   let isComplete = $derived(!!dateCompleted)
   let isLoading = $derived(albumsStore.isLoading(albumId))
@@ -114,7 +115,15 @@
       {title}
     </p>
     <p class="mt-0 line-clamp-1 font-geist text-sm dark:text-neutral-500">
-      {releaseDateFormatted} • {artist}
+      {releaseDateFormatted} •
+      {#each artists as a, i (a)}
+        {#if i > 0}<span>, </span>{/if}
+        <a
+          href="/?search={encodeURIComponent(a)}"
+          class="relative z-20 hover:underline"
+          onclick={(e) => e.stopPropagation()}
+        >{a}</a>
+      {/each}
     </p>
   </span>
 </div>

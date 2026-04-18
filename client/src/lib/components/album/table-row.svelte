@@ -22,6 +22,7 @@
   }: RootProps = $props()
 
   const releaseYear = $derived(releaseDate ? releaseDate.split('-')[0] : '—')
+  const artists = $derived(artist.split(';').map((a) => a.trim()).filter(Boolean))
   let isComplete = $derived(!!dateCompleted)
   let isLoading = $derived(albumsStore.isLoading(albumId))
 
@@ -87,7 +88,16 @@
   </td>
 
   <!-- Artist -->
-  <td class="py-2 pr-4 text-sm dark:text-neutral-400">{artist}</td>
+  <td class="py-2 pr-4 text-sm dark:text-neutral-400">
+    {#each artists as a, i (a)}
+      {#if i > 0}<span class="text-neutral-600">, </span>{/if}
+      <a
+        href="/?search={encodeURIComponent(a)}"
+        onclick={(e) => e.stopPropagation()}
+        class="hover:text-neutral-200 hover:underline"
+      >{a}</a>
+    {/each}
+  </td>
 
   <!-- Release year -->
   <td class="py-2 pr-4 text-sm tabular-nums dark:text-neutral-500">{releaseYear}</td>

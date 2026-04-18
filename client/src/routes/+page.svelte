@@ -1,11 +1,14 @@
 <script lang="ts">
   import { Album } from '$lib/components/album/index.js'
-  import { Input, InputCombobox, InputSelect, Tooltip } from '$lib/components'
+  import { Button, Input, InputCombobox, InputSelect, Tooltip } from '$lib/components'
   import { goto } from '$app/navigation'
   import { page } from '$app/stores'
   import { m } from '$lib/paraglide/messages'
   import { albumsStore } from '$lib/stores/albums.svelte'
-  import { Check, Trash2, X, LayoutGrid, List } from '@lucide/svelte'
+  import { Check, Trash2, X, LayoutGrid, List, Shuffle, Disc, ExternalLink } from '@lucide/svelte'
+  import { Dialog } from 'bits-ui'
+  import { resolve } from '$app/paths'
+  import { siApplemusic, siLastdotfm, siMusicbrainz, siSpotify, siYoutube } from 'simple-icons'
 
   // albums from server load
   let { data } = $props()
@@ -184,6 +187,70 @@
       bulkLoading = false
     }
   }
+
+  // Random album picker
+  let randomModalOpen = $state(false)
+  let randomAlbum = $state<(typeof data.albums)[0] | null>(null)
+
+  function pickRandom() {
+    if (!data.albums.length) return
+    randomAlbum = data.albums[Math.floor(Math.random() * data.albums.length)]
+    randomModalOpen = true
+  }
+
+  function reroll() {
+    if (data.albums.length <= 1) return
+    let next: (typeof data.albums)[0]
+    do {
+      next = data.albums[Math.floor(Math.random() * data.albums.length)]
+    } while (next.id === randomAlbum?.id)
+    randomAlbum = next
+  }
+
+  const randomLinks = $derived(
+    randomAlbum
+      ? [
+          randomAlbum.urlLastFm
+            ? { icon: siLastdotfm, label: 'Last.fm', url: randomAlbum.urlLastFm }
+            : null,
+          randomAlbum.urlSpotify
+            ? { icon: siSpotify, label: 'Spotify', url: randomAlbum.urlSpotify }
+            : null,
+          randomAlbum.urlAppleMusic
+            ? { icon: siApplemusic, label: 'Apple Music', url: randomAlbum.urlAppleMusic }
+            : null,
+          randomAlbum.urlYoutubeMusic || randomAlbum.urlYoutube
+            ? {
+                icon: siYoutube,
+                label: 'YouTube',
+                url: (randomAlbum.urlYoutubeMusic || randomAlbum.urlYoutube)!,
+              }
+            : null,
+          randomAlbum.mbid
+            ? {
+                icon: siMusicbrainz,
+                label: 'MusicBrainz',
+                url: `https://musicbrainz.org/release/${randomAlbum.mbid}`,
+              }
+            : null,
+          randomAlbum.urlRateYourMusic
+            ? {
+                iconUrl:
+                  'https://upload.wikimedia.org/wikipedia/commons/d/d0/Rate_Your_Music_logo.svg',
+                label: 'Rate Your Music',
+                url: randomAlbum.urlRateYourMusic,
+              }
+            : null,
+          randomAlbum.urlNavidrome
+            ? {
+                iconUrl: 'https://cdn.jsdelivr.net/gh/selfhst/icons@main/svg/navidrome.svg',
+                label: 'Navidrome',
+                url: randomAlbum.urlNavidrome,
+              }
+            : null,
+        ].filter((l): l is NonNullable<typeof l> => l !== null)
+      : [],
+  )
 </script>
 
 <svelte:head>
@@ -270,19 +337,30 @@
 
       <!-- Results Count -->
       <div class="flex items-center justify-between">
-        <span class="text-sm text-zinc-600 dark:text-zinc-400">
-          {m.showing_albums({ count: resultCount })}
-        </span>
         <div class="flex items-center gap-3">
-          <button
+          <Button.Root
+            variant="ghost"
+            theme="neutral"
+            onclick={pickRandom}
+            disabled={data.albums.length === 0}
+          >
+            {#snippet iconLeft()}
+              <Shuffle class="h-4 w-4" />
+            {/snippet}
+            {m.random_album()}
+          </Button.Root>
+          <span class="text-sm text-zinc-600 dark:text-zinc-400">
+            {m.showing_albums({ count: resultCount })}
+          </span>
+        </div>
+        <div class="flex items-center gap-3">
+          <Button.Root
+            variant="ghost"
+            theme={selectionMode ? 'brand' : 'neutral'}
             onclick={toggleSelectionMode}
-            class="cursor-pointer text-sm transition
-              {selectionMode
-              ? 'text-emerald-500 hover:text-emerald-400'
-              : 'text-zinc-500 hover:text-zinc-300'}"
           >
             {selectionMode ? 'Cancel selection' : 'Select mode'}
-          </button>
+          </Button.Root>
           <div class="flex items-center gap-0.5">
             <Tooltip.Root>
               {#snippet trigger()}
@@ -445,3 +523,107 @@
     </button>
   </div>
 {/if}
+
+<!-- Random album modal -->
+<Dialog.Root bind:open={randomModalOpen}>
+  <Dialog.Portal>
+    <Dialog.Overlay class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm" />
+    <Dialog.Content
+      class="fixed top-1/2 left-1/2 z-50 w-full max-w-md -translate-x-1/2 -translate-y-1/2 rounded-xl bg-zinc-950 p-6 shadow-2xl ring-1 ring-white/10 focus:outline-none"
+    >
+      <Dialog.Description class="sr-only">Random album suggestion</Dialog.Description>
+      {#if randomAlbum}
+        <div class="flex gap-4">
+          <!-- Cover -->
+          <div class="shrink-0">
+            {#if randomAlbum.coverUrl}
+              <img
+                src={randomAlbum.coverUrl}
+                alt="Album artwork"
+                class="h-24 w-24 rounded-lg object-cover"
+              />
+            {:else}
+              <span class="flex h-24 w-24 items-center justify-center rounded-lg bg-zinc-900">
+                <Disc class="h-10 w-10 text-emerald-600" />
+              </span>
+            {/if}
+          </div>
+
+          <!-- Info -->
+          <div class="min-w-0 flex-1">
+            <Dialog.Title class="truncate text-lg font-bold text-neutral-100">
+              {randomAlbum.title}
+            </Dialog.Title>
+            <p class="mt-0.5 truncate text-sm text-neutral-400">{randomAlbum.artist}</p>
+            {#if randomAlbum.releaseDate}
+              <p class="mt-0.5 text-xs text-neutral-600">{randomAlbum.releaseDate.slice(0, 4)}</p>
+            {/if}
+            {#if randomAlbum.genre}
+              <p class="mt-1 text-xs text-neutral-600">
+                {randomAlbum.genre
+                  .split(';')
+                  .map((g) => g.trim())
+                  .filter(Boolean)
+                  .join(' • ')}
+              </p>
+            {/if}
+          </div>
+        </div>
+
+        <!-- External links -->
+        {#if randomLinks.length > 0}
+          <ul class="mt-4 flex gap-3">
+            {#each randomLinks as link (link.url)}
+              <li>
+                <a
+                  href={link.url}
+                  aria-label={link.label}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="flex h-7 w-7 fill-neutral-500 p-1 opacity-50 transition hover:opacity-100 {link.iconUrl
+                    ? 'grayscale'
+                    : ''}"
+                >
+                  {#if 'icon' in link}
+                    <svg role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                      <title>{link.label}</title>
+                      <path d={link.icon.path} />
+                    </svg>
+                  {:else}
+                    <img src={link.iconUrl} alt={link.label} />
+                  {/if}
+                </a>
+              </li>
+            {/each}
+          </ul>
+        {/if}
+
+        <!-- Actions -->
+        <div class="mt-5 flex items-center gap-2">
+          <a
+            href={resolve(`/albums/${randomAlbum.id}`)}
+            onclick={() => (randomModalOpen = false)}
+            class="flex flex-1 items-center justify-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-emerald-500"
+          >
+            <ExternalLink class="h-3.5 w-3.5" />
+            {m.view_album()}
+          </a>
+          <button
+            onclick={reroll}
+            disabled={data.albums.length <= 1}
+            class="flex items-center gap-2 rounded-lg bg-zinc-800 px-4 py-2 text-sm font-medium text-zinc-300 transition hover:bg-zinc-700 disabled:opacity-40"
+          >
+            <Shuffle class="h-3.5 w-3.5" />
+            {m.try_another()}
+          </button>
+          <Dialog.Close
+            class="rounded-lg p-2 text-zinc-500 transition hover:text-zinc-200"
+            aria-label="Close"
+          >
+            <X class="h-4 w-4" />
+          </Dialog.Close>
+        </div>
+      {/if}
+    </Dialog.Content>
+  </Dialog.Portal>
+</Dialog.Root>

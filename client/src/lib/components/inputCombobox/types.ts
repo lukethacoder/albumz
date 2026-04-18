@@ -10,4 +10,5 @@ export type RootProps = Omit<Combobox.RootProps, 'type'> & {
   labelProps?: WithoutChildrenOrChild<Label.RootProps>
   type?: 'single' | 'multiple' | 'multiple-chip'
   placeholder?: string
+  allowNewValue?: boolean
 }

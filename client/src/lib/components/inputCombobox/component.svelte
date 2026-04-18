@@ -16,6 +16,7 @@
     label,
     labelProps,
     placeholder,
+    allowNewValue = false,
     ...restProps
   }: RootProps = $props()
 
@@ -30,6 +31,23 @@
     if (searchValue === '') return base
     return base.filter((item) => item.label.toLowerCase().includes(searchValue.toLowerCase()))
   })
+
+  const canCreateNew = $derived(
+    allowNewValue &&
+      isChip &&
+      searchValue.trim() !== '' &&
+      !items.some((i) => i.label.toLowerCase() === searchValue.trim().toLowerCase()) &&
+      !((value as string[] | undefined) ?? []).some(
+        (v) => v.toLowerCase() === searchValue.trim().toLowerCase(),
+      ),
+  )
+
+  function addNewValue() {
+    const trimmed = searchValue.trim()
+    if (!trimmed) return
+    value = [...((value as string[]) ?? []), trimmed] as never
+    searchValue = ''
+  }
 
   function handleOpenChange(newOpen: boolean) {
     if (!newOpen) searchValue = ''
@@ -156,6 +174,14 @@
               searchValue = e.currentTarget.value
               bitsProps.oninput?.(e)
             }}
+            onkeydown={(e) => {
+              if (allowNewValue && e.key === 'Enter' && canCreateNew) {
+                e.preventDefault()
+                e.stopPropagation()
+                addNewValue()
+              }
+              bitsProps.onkeydown?.(e)
+            }}
             class={cn(
               'min-w-20 flex-1 border-none bg-transparent px-1 py-0 text-sm ring-0 outline-none placeholder:text-zinc-500',
               inputProps?.class,
@@ -221,11 +247,24 @@
             {/if}
           {/snippet}
         </Combobox.Item>
-      {:else}
+      {/each}
+      {#if filteredItems.length === 0 && !canCreateNew}
         <div class="py-6 text-center text-sm text-zinc-500 dark:text-zinc-400">
           No results found
         </div>
-      {/each}
+      {/if}
+      {#if canCreateNew}
+        <button
+          type="button"
+          onmousedown={(e) => { e.preventDefault(); addNewValue() }}
+          class="flex w-full cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-sm text-zinc-500 transition hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800"
+        >
+          <svg class="size-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+          </svg>
+          Create "<span class="font-medium text-zinc-300">{searchValue.trim()}</span>"
+        </button>
+      {/if}
     </Combobox.Content>
   </Combobox.Portal>
 </Combobox.Root>

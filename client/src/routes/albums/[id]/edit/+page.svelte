@@ -162,6 +162,7 @@
             label={m.genre()}
             items={genreOptions}
             bind:value={selectedGenres}
+            allowNewValue
           />
         </div>
       {/if}

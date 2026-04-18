@@ -5,7 +5,7 @@
 
   let {
     theme = 'brand',
-    variant = 'solid',
+    variant = 'outline',
     size = 'md',
     ref = $bindable(null),
     loading = false,
@@ -55,8 +55,8 @@
       'bg-transparent text-emerald-700 ring-1 ring-inset ring-emerald-600/40 hover:bg-emerald-50 hover:ring-emerald-600 ' +
       'dark:bg-emerald-400/5 dark:text-emerald-400 dark:ring-1 dark:ring-inset dark:ring-emerald-400/30 dark:hover:bg-emerald-400/10 dark:hover:text-emerald-300 dark:hover:ring-emerald-300',
     positive:
-      'bg-transparent text-green-700 ring-1 ring-inset ring-green-600/40 hover:bg-green-50 hover:ring-green-600 ' +
-      'dark:bg-green-400/5 dark:text-green-400 dark:ring-1 dark:ring-inset dark:ring-green-400/30 dark:hover:bg-green-400/10 dark:hover:text-green-300 dark:hover:ring-green-300',
+      'bg-transparent text-emerald-700 ring-1 ring-inset ring-green-600/40 hover:bg-green-50 hover:ring-green-600 ' +
+      'dark:bg-green-400/5 dark:text-emerald-400 dark:ring-1 dark:ring-inset dark:ring-green-400/30 dark:hover:bg-green-400/10 dark:hover:text-emerald-300 dark:hover:ring-green-300',
     negative:
       'bg-transparent text-red-700 ring-1 ring-inset ring-red-600/40 hover:bg-red-50 hover:ring-red-600 ' +
       'dark:bg-red-400/5 dark:text-red-400 dark:ring-1 dark:ring-inset dark:ring-red-400/30 dark:hover:bg-red-400/10 dark:hover:text-red-300 dark:hover:ring-red-300',
@@ -73,7 +73,7 @@
     brand:
       'bg-transparent text-emerald-700 hover:bg-emerald-50 dark:text-emerald-400 dark:hover:bg-emerald-400/10 dark:hover:text-emerald-300',
     positive:
-      'bg-transparent text-green-700   hover:bg-green-50   dark:text-green-400   dark:hover:bg-green-400/10   dark:hover:text-green-300',
+      'bg-transparent text-emerald-700   hover:bg-green-50   dark:text-emerald-400   dark:hover:bg-green-400/10   dark:hover:text-emerald-300',
     negative:
       'bg-transparent text-red-700     hover:bg-red-50     dark:text-red-400     dark:hover:bg-red-400/10     dark:hover:text-red-300',
     warning:
@@ -98,7 +98,7 @@
   {...rest}
   class={cn(
     // ── Base — preserves your exact structural choices ─────────────────────────
-    'inline-flex cursor-pointer items-center justify-center overflow-hidden rounded-md font-geist transition',
+    'inline-flex cursor-pointer items-center justify-center overflow-hidden rounded-md font-geist capitalize transition',
     // ── Focus ring ────────────────────────────────────────────────────────────
     'focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none',
     'focus-visible:ring-offset-white dark:focus-visible:ring-offset-zinc-900',

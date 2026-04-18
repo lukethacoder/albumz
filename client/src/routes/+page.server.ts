@@ -16,7 +16,7 @@ export const load: PageServerLoad = async ({ cookies, url }) => {
   const maxYear = url.searchParams.get('maxYear')
     ? parseInt(url.searchParams.get('maxYear')!)
     : undefined
-  const showCompleted = url.searchParams.get('showCompleted') === 'true'
+  const completionFilter = (url.searchParams.get('completionFilter') as 'all' | 'backlog' | 'listened') || 'backlog'
   const sortBy =
     (url.searchParams.get('sortBy') as
       | 'dateAddedDesc'
@@ -33,14 +33,14 @@ export const load: PageServerLoad = async ({ cookies, url }) => {
       search,
       minYear,
       maxYear,
-      showCompleted,
+      completionFilter,
       sortBy,
       genres,
     })
 
-    // Get all albums (unfiltered) to extract available years
+    // Get all albums (unfiltered) to extract available years/genres
     const allAlbums = await trpc.albums.list.query({
-      showCompleted: true, // Include all albums
+      completionFilter: 'all',
       sortBy: 'dateAddedDesc',
     })
 

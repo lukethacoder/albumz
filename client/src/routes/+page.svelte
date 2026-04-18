@@ -1,6 +1,6 @@
 <script lang="ts">
   import { Album } from '$lib/components/album/index.js'
-  import { Input, InputCheckbox, InputCombobox, InputSelect } from '$lib/components'
+  import { Input, InputCombobox, InputSelect } from '$lib/components'
   import { goto } from '$app/navigation'
   import { page } from '$app/stores'
   import { m } from '$lib/paraglide/messages'
@@ -14,7 +14,7 @@
   let searchQuery = $state('')
   let minYear = $state<string>('')
   let maxYear = $state<string>('')
-  let showCompleted = $state(false)
+  let completionFilter = $state<string>('backlog')
   let sortOption = $state<string>('dateAddedDesc')
   let selectedGenres = $state<string[]>([])
 
@@ -42,7 +42,7 @@
     searchQuery = $page.url.searchParams.get('search') || ''
     minYear = $page.url.searchParams.get('minYear') || ''
     maxYear = $page.url.searchParams.get('maxYear') || ''
-    showCompleted = $page.url.searchParams.get('showCompleted') === 'true'
+    completionFilter = $page.url.searchParams.get('completionFilter') || 'backlog'
     sortOption = $page.url.searchParams.get('sortBy') || 'dateAddedDesc'
     selectedGenres = ($page.url.searchParams.get('genres') || '').split(',').filter(Boolean)
   })
@@ -62,7 +62,7 @@
   $effect(() => {
     void minYear
     void maxYear
-    void showCompleted
+    void completionFilter
     void sortOption
     void selectedGenres
 
@@ -74,7 +74,7 @@
     if (searchQuery.trim()) params.set('search', searchQuery.trim())
     if (minYear) params.set('minYear', minYear)
     if (maxYear) params.set('maxYear', maxYear)
-    if (showCompleted) params.set('showCompleted', 'true')
+    if (completionFilter !== 'backlog') params.set('completionFilter', completionFilter)
     if (sortOption !== 'dateAddedDesc') params.set('sortBy', sortOption)
     if (selectedGenres.length) params.set('genres', selectedGenres.join(','))
 
@@ -243,9 +243,18 @@
           </div>
         </div>
 
-        <!-- Show Completed Checkbox -->
-        <div class="mb-2">
-          <InputCheckbox.Root bind:checked={showCompleted} label={m.show_completed_albums()} />
+        <!-- Status Filter -->
+        <div class="w-36">
+          <InputSelect.Root
+            type="single"
+            label={m.status()}
+            items={[
+              { value: 'all', label: m.all() },
+              { value: 'backlog', label: m.backlog() },
+              { value: 'listened', label: m.listened() },
+            ]}
+            bind:value={completionFilter}
+          />
         </div>
 
         <!-- Sort Dropdown -->

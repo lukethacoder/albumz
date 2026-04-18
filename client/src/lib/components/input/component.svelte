@@ -19,7 +19,7 @@
 
   const mergedLabelProps = $derived(
     mergeProps(labelProps, {
-      class: cn('mb-1.5 block text-sm font-medium text-zinc-700', labelProps?.class),
+      class: cn('mb-1.5 block text-sm font-medium text-zinc-700 capitalize', labelProps?.class),
     }),
   )
 </script>
@@ -61,12 +61,12 @@
       'h-2 w-full cursor-pointer appearance-none rounded-full bg-zinc-200 transition-colors',
       // Track
       '[&::-webkit-slider-runnable-track]:h-2 [&::-webkit-slider-runnable-track]:rounded-full [&::-webkit-slider-runnable-track]:bg-zinc-200',
-      '[&::-moz-range-track]:h-2 [&::-moz-range-track]:rounded-full [&::-moz-range-track]:bg-zinc-200 [&::-moz-range-track]:border-0',
+      '[&::-moz-range-track]:h-2 [&::-moz-range-track]:rounded-full [&::-moz-range-track]:border-0 [&::-moz-range-track]:bg-zinc-200',
       // Thumb - webkit needs -mt-1 (4px) to center 16px thumb on 8px track
       '[&::-webkit-slider-thumb]:-mt-1 [&::-webkit-slider-thumb]:size-4 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-emerald-600 [&::-webkit-slider-thumb]:shadow-sm [&::-webkit-slider-thumb]:transition-transform [&::-webkit-slider-thumb]:hover:scale-110',
       '[&::-moz-range-thumb]:size-4 [&::-moz-range-thumb]:appearance-none [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:bg-emerald-600 [&::-moz-range-thumb]:shadow-sm [&::-moz-range-thumb]:transition-transform [&::-moz-range-thumb]:hover:scale-110',
       // Focus
-      'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600/20 focus-visible:ring-offset-2',
+      'focus-visible:ring-2 focus-visible:ring-emerald-600/20 focus-visible:ring-offset-2 focus-visible:outline-none',
       '[&:focus-visible::-webkit-slider-thumb]:ring-2 [&:focus-visible::-webkit-slider-thumb]:ring-emerald-600/30',
       '[&:focus-visible::-moz-range-thumb]:ring-2 [&:focus-visible::-moz-range-thumb]:ring-emerald-600/30',
       // Disabled

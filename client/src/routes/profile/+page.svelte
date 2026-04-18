@@ -2,8 +2,9 @@
   import { invalidateAll } from '$app/navigation'
   import { trpc } from '$lib/trpc/client'
   import { getLocale, locales, setLocale } from '$lib/paraglide/runtime'
-  import { InputSelect } from '$lib/components'
+  import { Button, InputSelect } from '$lib/components'
   import { m } from '$lib/paraglide/messages.js'
+  import { Check, X } from '@lucide/svelte'
 
   const ALL_SERVICES = [
     { key: 'lastfm', label: 'Last.fm' },
@@ -207,36 +208,38 @@
         </div>
 
         {#if navMessage}
-          <p class="text-sm {navMessage.type === 'success' ? 'text-green-400' : 'text-red-400'}">
+          <p class="text-sm {navMessage.type === 'success' ? 'text-emerald-400' : 'text-red-400'}">
             {navMessage.text}
           </p>
         {/if}
 
         <div class="flex gap-2">
-          <button
+          <Button.Root
+            variant="outline"
+            theme="neutral"
             onclick={testNavidrome}
             disabled={navTesting || !navUrl || !navUsername || !navPassword}
-            class="rounded border border-neutral-600 px-3 py-2 text-sm hover:bg-neutral-800 disabled:opacity-40"
           >
             {navTesting ? m.testing() : m.test_connection()}
-          </button>
+          </Button.Root>
 
-          <button
+          <Button.Root
+            variant="outline"
             onclick={saveNavidrome}
             disabled={navSaving || !navUrl || !navUsername || !navPassword}
-            class="rounded bg-white px-3 py-2 text-sm text-black hover:bg-neutral-200 disabled:opacity-40"
           >
             {navSaving ? m.saving() : m.save()}
-          </button>
+          </Button.Root>
 
           {#if hasExistingConfig}
-            <button
+            <Button.Root
+              theme="negative"
+              variant="outline"
               onclick={deleteNavidrome}
               disabled={navDeleting}
-              class="rounded border border-red-800 px-3 py-2 text-sm text-red-400 hover:bg-red-950 disabled:opacity-40"
             >
               {navDeleting ? m.removing() : m.remove()}
-            </button>
+            </Button.Root>
           {/if}
         </div>
       </div>
@@ -254,32 +257,31 @@
             <button
               type="button"
               onclick={() => toggleService(service.key)}
-              class="inline-flex cursor-pointer justify-center overflow-hidden rounded-md px-3 py-1 font-geist text-sm transition focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none active:scale-[0.97] dark:focus-visible:ring-offset-zinc-900 {selectedServices.includes(
-                service.key,
-              )
-                ? 'bg-emerald-600 text-white hover:bg-emerald-500 dark:bg-emerald-500 dark:hover:bg-emerald-400'
-                : 'bg-transparent text-zinc-700 ring-1 ring-zinc-900/20 ring-inset hover:bg-zinc-50 hover:ring-zinc-900/40 dark:bg-white/5 dark:text-zinc-400 dark:ring-white/15 dark:hover:bg-white/10 dark:hover:text-zinc-300 dark:hover:ring-white/30'}"
+              class="inline-flex cursor-pointer items-center justify-center gap-1 overflow-hidden rounded-md bg-transparent px-3 py-1 font-geist text-sm text-zinc-700 ring-1 ring-zinc-900/20 transition ring-inset hover:bg-zinc-50 hover:ring-zinc-900/40 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none active:scale-[0.97] dark:bg-white/5 dark:text-zinc-400 dark:ring-white/15 dark:hover:bg-white/10 dark:hover:text-zinc-300 dark:hover:ring-white/30 dark:focus-visible:ring-offset-zinc-900"
             >
               {service.label}
+              {#if selectedServices.includes(service.key)}
+                <Check class="h-4 w-4 text-emerald-400" />
+              {:else}
+                <X class="h-4 w-4 text-red-400" />
+              {/if}
             </button>
           {/each}
         </div>
 
         {#if servicesMessage}
           <p
-            class="text-sm {servicesMessage.type === 'success' ? 'text-green-400' : 'text-red-400'}"
+            class="text-sm {servicesMessage.type === 'success'
+              ? 'text-emerald-400'
+              : 'text-red-400'}"
           >
             {servicesMessage.text}
           </p>
         {/if}
 
-        <button
-          onclick={saveServices}
-          disabled={servicesSaving}
-          class="rounded bg-white px-3 py-2 text-sm text-black hover:bg-neutral-200 disabled:opacity-40"
-        >
+        <Button.Root onclick={saveServices} disabled={servicesSaving}>
           {servicesSaving ? m.saving() : m.save_preferences()}
-        </button>
+        </Button.Root>
       </div>
     </div>
   </div>

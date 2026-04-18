@@ -11,8 +11,10 @@ export class AlbumRepository {
     const conditions = [eq(albums.userId, userId)]
 
     // Filter by completion status
-    if (filters && !filters.showCompleted) {
+    if (!filters || filters.completionFilter === 'backlog') {
       conditions.push(isNull(albums.dateCompleted))
+    } else if (filters.completionFilter === 'listened') {
+      conditions.push(sql`${albums.dateCompleted} IS NOT NULL`)
     }
 
     // Filter by search query (title or artist)

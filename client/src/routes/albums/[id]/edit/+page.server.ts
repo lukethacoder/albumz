@@ -11,7 +11,7 @@ export const load: PageServerLoad = async ({ params, cookies }) => {
   try {
     const [album, allAlbums] = await Promise.all([
       trpc.albums.getById.query({ id: params.id }),
-      trpc.albums.list.query({ showCompleted: true, sortBy: 'dateAddedDesc' }),
+      trpc.albums.list.query({ completionFilter: 'all', sortBy: 'dateAddedDesc' }),
     ])
 
     const availableGenres = Array.from(

@@ -5,6 +5,7 @@ import {
   text,
   timestamp,
   date,
+  real,
 } from 'drizzle-orm/pg-core'
 import { users } from './user.schema'
 import { relations } from 'drizzle-orm'
@@ -33,6 +34,7 @@ export const albums = pgTable('albums', {
   urlYoutubeMusic: text('url_youtube_music'),
   urlRateYourMusic: text('url_rate_your_music'),
   urlNavidrome: text('url_navidrome'),
+  rating: real('rating'),
 })
 
 export const albumsRelations = relations(albums, ({ one }) => ({

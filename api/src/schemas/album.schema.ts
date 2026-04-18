@@ -28,6 +28,7 @@ export const updateAlbumSchema = z.object({
   urlRateYourMusic: z.string().url().optional(),
   urlNavidrome: z.string().optional(),
   dateCompleted: z.string().datetime().or(z.date()).nullable().optional(),
+  rating: z.number().min(0).max(5).multipleOf(0.5).nullable().optional(),
 })
 
 // Zod schema for filtering and sorting albums

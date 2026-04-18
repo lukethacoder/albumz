@@ -36,20 +36,14 @@ const TIME_UNITS = {
   second: 1000,
 } as const
 
-const TIME_UNIT_LABEL = {
-  year: 'year',
-  month: 'month',
-  day: 'day',
-  hour: 'hour',
-  minute: 'minute',
-  second: 'second',
-}
-
 type TimeUnit = keyof typeof TIME_UNITS
 
-export const getRelativeTime = (d1: Date, d2?: Date) => {
+export const getRelativeTime = (d1: Date, d2?: Date, isShort?: boolean) => {
   const locale = getLocale()
-  const rtf = new Intl.RelativeTimeFormat(locale, { numeric: 'auto' })
+  const rtf = new Intl.RelativeTimeFormat(locale, {
+    numeric: 'auto',
+    style: isShort ? 'short' : 'long',
+  })
   const elapsed = d1.getTime() - (d2 || new Date()).getTime()
 
   // "Math.abs" accounts for both "past" & "future" scenarios

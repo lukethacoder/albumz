@@ -359,6 +359,10 @@
             >
             <th
               class="py-2 pr-4 text-left text-xs font-medium tracking-wide text-zinc-500 uppercase"
+              >Rating</th
+            >
+            <th
+              class="py-2 pr-4 text-left text-xs font-medium tracking-wide text-zinc-500 uppercase"
               >Date Added</th
             >
             <th class="w-20"></th>
@@ -375,6 +379,7 @@
               dateCompleted={album.dateCompleted}
               genre={album.genre}
               createdAt={album.createdAt}
+              rating={album.rating}
               selected={selectedIds.has(album.id)}
               onToggleSelect={selectionMode ? toggleSelect : undefined}
             />

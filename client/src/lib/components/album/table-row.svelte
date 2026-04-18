@@ -3,6 +3,7 @@
   import { Check, Disc, Trash2 } from '@lucide/svelte'
   import { albumsStore } from '$lib/stores/albums.svelte'
   import { getRelativeTime } from '$lib/utils'
+  import { StarRating } from '$lib/components'
   import type { RootProps } from './types'
 
   let {
@@ -14,6 +15,7 @@
     dateCompleted,
     genre,
     createdAt,
+    rating = null,
     selected = false,
     onToggleSelect,
     onDeleteAlbum,
@@ -94,13 +96,16 @@
   <td class="py-2 pr-4 text-sm dark:text-neutral-500">
     {#if genre}
       <span class="flex flex-wrap gap-x-1">
-        {#each genre.split(';').map((g) => g.trim()).filter(Boolean) as g, i (g)}
+        {#each genre
+          .split(';')
+          .map((g) => g.trim())
+          .filter(Boolean) as g, i (g)}
           {#if i > 0}<span class="text-neutral-600">•</span>{/if}
           <a
             href="/?genres={encodeURIComponent(g)}"
             onclick={(e) => e.stopPropagation()}
-            class="hover:text-neutral-300 hover:underline"
-          >{g}</a>
+            class="hover:text-neutral-300 hover:underline">{g}</a
+          >
         {/each}
       </span>
     {:else}
@@ -108,16 +113,21 @@
     {/if}
   </td>
 
+  <!-- Rating -->
+  <td class="py-2 pr-4" onclick={(e) => e.stopPropagation()}>
+    <StarRating.Root {albumId} bind:rating {isComplete} size="sm" readonly={!!onToggleSelect} />
+  </td>
+
   <!-- Date added -->
   <td class="py-2 pr-4 text-sm dark:text-neutral-500">
-    {createdAt ? getRelativeTime(new Date(createdAt)) : '—'}
+    {createdAt ? getRelativeTime(new Date(createdAt), new Date(), true) : '—'}
   </td>
 
   <!-- Actions -->
   <td class="py-2 pr-3">
     {#if !onToggleSelect}
       <div
-        class="flex justify-end gap-1 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100"
+        class="flex justify-end gap-1 opacity-0 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100"
       >
         <button
           onclick={handleToggleComplete}

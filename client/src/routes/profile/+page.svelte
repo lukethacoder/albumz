@@ -133,22 +133,22 @@
 {#if user}
   <div class="mx-auto max-w-4xl space-y-10 p-6">
     <div>
-      <h1 class="mb-6 text-3xl font-bold">{m.profile()}</h1>
+      <h1 class="mb-6 text-3xl font-bold capitalize">{m.profile()}</h1>
 
       <div class="space-y-4">
         <div>
-          <p class="block text-sm font-medium">{m.user_id()}</p>
+          <p class="block text-sm font-medium capitalize">{m.user_id()}</p>
           <p class="mt-1 text-sm">{user.id}</p>
         </div>
 
         <div>
-          <p class="block text-sm font-medium">{m.email()}</p>
+          <p class="block text-sm font-medium capitalize">{m.email()}</p>
           <p class="mt-1 text-sm">{user.email}</p>
         </div>
 
         {#if user.username}
           <div>
-            <p class="block text-sm font-medium">{m.username()}</p>
+            <p class="block text-sm font-medium capitalize">{m.username()}</p>
             <p class="mt-1 text-sm">{user.username}</p>
           </div>
         {/if}

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Button } from '$lib/components'
+  import { Button, StarRating } from '$lib/components'
   import { m } from '$lib/paraglide/messages.js'
   import { cn, getRelativeTime, translateError } from '$lib/utils'
   import { Check, RefreshCw, Pencil, ImagePlus, X } from '@lucide/svelte'
@@ -26,6 +26,8 @@
   // Empty array means all services are enabled (default state)
   const isServiceEnabled = (key: string) =>
     enabledServices.length === 0 || enabledServices.includes(key)
+
+  let rating = $state<number | null>(album.rating ?? null)
 
   // Check if album is completed based on dateCompleted field
   let isComplete = $derived(!!album.dateCompleted)
@@ -224,6 +226,9 @@
               {/each}
             </p>
           {/if}
+        </div>
+        <div class="mt-3">
+          <StarRating.Root albumId={album.id} bind:rating {isComplete} />
         </div>
         <div class="mt-4 flex flex-col gap-2">
           {#if error || refreshError}

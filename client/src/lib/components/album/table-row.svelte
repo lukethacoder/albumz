@@ -22,9 +22,15 @@
   }: RootProps = $props()
 
   const releaseYear = $derived(releaseDate ? releaseDate.split('-')[0] : '—')
-  const artists = $derived(artist.split(';').map((a) => a.trim()).filter(Boolean))
+  const artists = $derived(
+    artist
+      .split(';')
+      .map((a) => a.trim())
+      .filter(Boolean),
+  )
   let isComplete = $derived(!!dateCompleted)
   let isLoading = $derived(albumsStore.isLoading(albumId))
+  let coverBroken = $state(false)
 
   async function handleDelete(e: MouseEvent) {
     e.preventDefault()
@@ -52,8 +58,13 @@
   <!-- Artwork -->
   <td class="w-14 p-2 pl-3">
     <span class="relative flex h-10 w-10 shrink-0 overflow-hidden rounded-md">
-      {#if coverUrl}
-        <img src={coverUrl} alt="album artwork" class="h-full w-full object-cover" />
+      {#if coverUrl && !coverBroken}
+        <img
+          src={coverUrl}
+          alt="album artwork"
+          class="h-full w-full object-cover"
+          onerror={() => (coverBroken = true)}
+        />
       {:else}
         <span class="flex h-full w-full items-center justify-center bg-neutral-900">
           <Disc class="h-5 w-5 text-emerald-600" />
@@ -94,8 +105,8 @@
       <a
         href="/?search={encodeURIComponent(a)}"
         onclick={(e) => e.stopPropagation()}
-        class="hover:text-neutral-200 hover:underline"
-      >{a}</a>
+        class="hover:text-neutral-200 hover:underline">{a}</a
+      >
     {/each}
   </td>
 
@@ -133,10 +144,16 @@
     {#if createdAt}
       <Tooltip.Root>
         {#snippet trigger()}
-          <span class="cursor-default">{getRelativeTime(new Date(createdAt), new Date(), true)}</span>
+          <span class="cursor-default"
+            >{getRelativeTime(new Date(createdAt), new Date(), true)}</span
+          >
         {/snippet}
         {#snippet children()}
-          {new Date(createdAt).toLocaleDateString(navigator.language, { day: 'numeric', month: 'short', year: 'numeric' })}
+          {new Date(createdAt).toLocaleDateString(navigator.language, {
+            day: 'numeric',
+            month: 'short',
+            year: 'numeric',
+          })}
         {/snippet}
       </Tooltip.Root>
     {:else}

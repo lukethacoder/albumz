@@ -17,10 +17,16 @@
   }: RootProps = $props()
 
   const releaseDateFormatted = $derived(releaseDate ? releaseDate.split('-')[0] : 'Unknown')
-  const artists = $derived(artist.split(';').map((a) => a.trim()).filter(Boolean))
+  const artists = $derived(
+    artist
+      .split(';')
+      .map((a) => a.trim())
+      .filter(Boolean),
+  )
 
   let isComplete = $derived(!!dateCompleted)
   let isLoading = $derived(albumsStore.isLoading(albumId))
+  let coverBroken = $state(false)
 
   async function handleDelete(e: MouseEvent) {
     e.preventDefault()
@@ -68,8 +74,13 @@
         >
           <Disc class="h-full w-1/2 text-emerald-600" />
         </span>
-        {#if coverUrl}
-          <img src={coverUrl} alt="album artwork" class="relative w-full max-w-full" />
+        {#if coverUrl && !coverBroken}
+          <img
+            src={coverUrl}
+            alt="album artwork"
+            class="relative w-full max-w-full"
+            onerror={() => (coverBroken = true)}
+          />
         {/if}
       </span>
 
@@ -121,8 +132,8 @@
         <a
           href="/?search={encodeURIComponent(a)}"
           class="relative z-20 hover:underline"
-          onclick={(e) => e.stopPropagation()}
-        >{a}</a>
+          onclick={(e) => e.stopPropagation()}>{a}</a
+        >
       {/each}
     </p>
   </span>

@@ -28,6 +28,7 @@
     enabledServices.length === 0 || enabledServices.includes(key)
 
   let rating = $state<number | null>(album.rating ?? null)
+  let coverBroken = $state(false)
 
   // Check if album is completed based on dateCompleted field
   let isComplete = $derived(!!album.dateCompleted)
@@ -169,38 +170,46 @@
 </svelte:head>
 
 <section
-  class="relative flex h-full w-full items-center justify-center px-8 py-12 lg:py-16 xl:py-20"
+  class="relative flex h-full w-full items-center justify-center px-4 py-12 lg:px-8 lg:py-16 xl:py-20"
 >
   <div class="container mx-auto flex w-full flex-col gap-4 px-2 sm:flex-row sm:gap-12 md:gap-16">
     {#if album}
-      <div class="">
-        <div
-          class="group relative mx-auto flex aspect-square w-full max-w-xl items-center justify-center rounded-lg"
-        >
-          {#if album?.coverUrl}
-            <span class="absolute h-full w-full opacity-50 blur-lg">
-              <img src={album?.coverUrl} alt={`Album artwork for ${album.title}`} class="w-7xl" />
-            </span>
-            <span class="relative z-10 mx-auto w-full p-2">
-              <img
-                src={album?.coverUrl}
-                alt={`Album artwork for ${album.title}`}
-                class="w-7xl rounded-lg"
-              />
-            </span>
-          {:else}
+      <div
+        class="group relative mx-auto flex aspect-square w-full max-w-90 items-center justify-center rounded-lg"
+      >
+        {#if album?.coverUrl && !coverBroken}
+          <span class="absolute h-full w-full opacity-50 blur-lg">
+            <img
+              src={album?.coverUrl}
+              alt={`Album artwork for ${album.title}`}
+              onerror={() => (coverBroken = true)}
+              class="w-7xl"
+            />
+          </span>
+          <span class="relative z-10 mx-auto w-full p-2">
+            <img
+              src={album?.coverUrl}
+              alt={`Album artwork for ${album.title}`}
+              class="w-7xl rounded-lg"
+              onerror={() => (coverBroken = true)}
+            />
+          </span>
+        {:else}
+          <div class="flex h-full w-full items-center rounded-lg bg-neutral-900">
             <span class="mx-auto flex w-1/2 items-center justify-center">
-              <Disc class="h-full w-full text-emerald-600" />
+              <div class="w-xl">
+                <Disc class="h-full w-full text-emerald-600" />
+              </div>
             </span>
-          {/if}
-          <button
-            class="absolute top-4 right-4 z-20 cursor-pointer rounded-full bg-black/60 p-2 text-white opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-white focus-visible:outline-none"
-            onclick={openArtworkModal}
-            aria-label="Edit artwork"
-          >
-            <ImagePlus class="h-4 w-4" />
-          </button>
-        </div>
+          </div>
+        {/if}
+        <button
+          class="absolute top-4 right-4 z-20 cursor-pointer rounded-full bg-black/60 p-2 text-white opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-white focus-visible:outline-none"
+          onclick={openArtworkModal}
+          aria-label="Edit artwork"
+        >
+          <ImagePlus class="h-4 w-4" />
+        </button>
       </div>
       <div class="mt-4 w-full sm:mt-10">
         <div class="mx-auto flex max-w-full flex-col">

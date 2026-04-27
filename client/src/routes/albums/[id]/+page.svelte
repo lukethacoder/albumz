@@ -179,13 +179,13 @@
         >
           {#if album?.coverUrl}
             <span class="absolute h-full w-full opacity-50 blur-lg">
-              <img src={album?.coverUrl} alt={`Album artwork for ${album.title}`} />
+              <img src={album?.coverUrl} alt={`Album artwork for ${album.title}`} class="w-7xl" />
             </span>
             <span class="relative z-10 mx-auto w-full p-2">
               <img
                 src={album?.coverUrl}
                 alt={`Album artwork for ${album.title}`}
-                class="rounded-lg"
+                class="w-7xl rounded-lg"
               />
             </span>
           {:else}
@@ -208,7 +208,10 @@
             {album.title}
           </h1>
           <h2 class="text-md font-geist font-medium dark:text-neutral-500">
-            {#each album.artist.split(';').map((a) => a.trim()).filter(Boolean) as a, i (a)}
+            {#each album.artist
+              .split(';')
+              .map((a) => a.trim())
+              .filter(Boolean) as a, i (a)}
               {#if i > 0}<span>, </span>{/if}
               <a href="/?search={encodeURIComponent(a)}" class="hover:underline">{a}</a>
             {/each}

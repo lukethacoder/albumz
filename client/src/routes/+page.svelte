@@ -402,7 +402,7 @@
   </div>
 
   <!-- Albums -->
-  <section class="w-full">
+  <section class="w-full overflow-x-auto">
     {#if data.albums.length === 0}
       <div class="flex min-h-[400px] items-center justify-center">
         <div class="text-center">
@@ -432,7 +432,7 @@
         {/each}
       </ul>
     {:else}
-      <table class="w-full border-collapse">
+      <table class="min-w-full border-collapse">
         <thead>
           <tr class="border-b border-zinc-800">
             <th class="w-14"></th>
@@ -561,7 +561,15 @@
             <Dialog.Title class="truncate text-lg font-bold text-neutral-100">
               {randomAlbum.title}
             </Dialog.Title>
-            <p class="mt-0.5 truncate text-sm text-neutral-400">{randomAlbum.artist}</p>
+            <p class="mt-0.5 truncate text-sm text-neutral-400">
+              {#each randomAlbum.artist
+                .split(';')
+                .map((a) => a.trim())
+                .filter(Boolean) as a, i (a)}
+                {#if i > 0}<span>, </span>{/if}
+                <a href="/?search={encodeURIComponent(a)}" class="hover:underline">{a}</a>
+              {/each}
+            </p>
             {#if randomAlbum.releaseDate}
               <p class="mt-0.5 text-xs text-neutral-600">{randomAlbum.releaseDate.slice(0, 4)}</p>
             {/if}
@@ -618,7 +626,7 @@
           <button
             onclick={reroll}
             disabled={data.albums.length <= 1}
-            class="flex items-center gap-2 rounded-lg bg-zinc-800 px-4 py-2 text-sm font-medium text-zinc-300 transition hover:bg-zinc-700 disabled:opacity-40"
+            class="flex cursor-pointer items-center gap-2 rounded-lg bg-zinc-800 px-4 py-2 text-sm font-medium text-zinc-300 transition hover:bg-zinc-700 disabled:opacity-40"
           >
             <Shuffle class="h-3.5 w-3.5" />
             {m.try_another()}

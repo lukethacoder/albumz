@@ -32,29 +32,6 @@ const ALBUMS_MOCK_DATA = [
     urlNavidrome: '/app/#/album/5mftawbxU7CLSqZ6UR9vZB/show',
   },
   {
-    id: 'ec2a81b2-e0b6-4e1e-abc1-abca8469208d',
-    title: 'Chocolate Starfish And The Hot Dog Flavored Water',
-    artist: 'Limp Bizkit',
-    genre: 'Nu Metal',
-    releaseDate: '2000-10-17',
-    description: '',
-    coverUrl:
-      'https://lastfm.freetls.fastly.net/i/u/300x300/9939a159279a21306d8d48a8562a5207.png',
-    rating: '',
-    dateCompleted: '',
-    createdAt: '2026-04-28T10:09:10.000Z',
-    updatedAt: '2026-04-28T10:10:58.137Z',
-    mbid: '94341c22-13a2-3ef7-a6e1-38caf9bc8f5a',
-    urlLastFm:
-      'https://www.last.fm/music/Limp+Bizkit/Chocolate+Starfish+and+the+Hot+Dog+Flavored+Water',
-    urlSpotify: 'https://open.spotify.com/album/5mi7FKaWE5CtcOjdyxScA7',
-    urlAppleMusic:
-      'https://music.apple.com/au/album/chocolate-starfish-and-the-hot-dog-flavored-water/1440842682',
-    urlYoutube: '',
-    urlYoutubeMusic: '',
-    urlNavidrome: '/app/#/album/5e9egnXmT4p6mI3IZAo1JA/show',
-  },
-  {
     id: '487353cf-d755-4fa4-9bd9-d34baf98378f',
     title: 'Sempiternal (Expanded Edition)',
     artist: 'Bring Me The Horizon',
@@ -100,25 +77,26 @@ const ALBUMS_MOCK_DATA = [
   },
   {
     id: 'd89abfd6-adbe-4ce7-8a90-eab562e8c0ae',
-    title: 'Ventura',
+    title: 'Oxnard',
     artist: 'Anderson .Paak',
-    genre: 'Funk',
-    releaseDate: '2019-04-12',
+    genre: 'Hip-Hop;RnB',
+    releaseDate: '2018-11-15',
     description: '',
     coverUrl:
-      'https://lastfm.freetls.fastly.net/i/u/300x300/ea83c736ad1bafd445031abfabc55fb9.jpg',
+      'https://coverartarchive.org/release/4d729784-5a57-4e13-8212-d5c026b4d3cc/21734028540.jpg',
     rating: '',
     dateCompleted: '',
-    createdAt: '2026-04-18T05:16:15.000Z',
-    updatedAt: '2026-04-28T10:10:58.017Z',
-    mbid: 'f30e9f19-f0da-4eb5-bea4-0dfd75f5cae2',
-    urlLastFm: 'https://www.last.fm/music/Anderson+.Paak/Ventura',
-    urlSpotify:
-      'https://open.spotify.com/album/0YF8PfcGbsKg5IaFyPnlyY?si=CSqlmx1qSUiW4HhQj1tbcg',
-    urlAppleMusic: 'https://music.apple.com/au/album/ventura/1456218234',
-    urlYoutube: '',
-    urlYoutubeMusic: '',
-    urlNavidrome: '/app/#/album/6SSIowjjAO7mZQZKBcCnpx/show',
+    createdAt: '2019-01-01T05:16:15.000Z',
+    updatedAt: '2019-01-01T10:10:58.017Z',
+    mbid: '4d729784-5a57-4e13-8212-d5c026b4d3cc',
+    urlLastFm: 'https://www.last.fm/music/Anderson+.Paak/Oxnard',
+    urlSpotify: 'https://open.spotify.com/album/3rqqwtJE89WoWvMyPTvbZc',
+    urlAppleMusic: 'https://music.apple.com/au/album/oxnard/1439982774',
+    urlYoutube:
+      'https://www.youtube.com/playlist?list=OLAK5uy_nR0sk-LTM1YEtj7pWIHVkXiwE57kd4xqQ',
+    urlYoutubeMusic:
+      'https://music.youtube.com/playlist?list=OLAK5uy_nR0sk-LTM1YEtj7pWIHVkXiwE57kd4xqQ&si=dlPglDraV4y1PIiU',
+    urlNavidrome: '/app/#/album/4kwpSZPOgXHLGQgYTKR6Jd/show',
   },
   {
     id: 'caeba804-133b-43e2-932b-4ae82e42fc07',
@@ -280,7 +258,7 @@ const ALBUMS_MOCK_DATA = [
     id: '86779f26-5122-46f4-a580-828f6ebde934',
     title: 'Alien',
     artist: 'Northlane',
-    genre: 'Hardcore Punk',
+    genre: 'Metalcore;Progressive Metal;Industrial Metal',
     releaseDate: '2019-08-02',
     description: '',
     coverUrl:
@@ -322,11 +300,11 @@ const ALBUMS_MOCK_DATA = [
     id: '7253b2e6-12e0-4c12-815b-e7fe285a4f06',
     title: 'A Whisp of the Atlantic',
     artist: 'Soilwork',
-    genre: 'Melodic Death Metal',
+    genre: 'Melodic Death Metal;Metal',
     releaseDate: '2020-12-04',
     description: '',
     coverUrl:
-      'https://lastfm.freetls.fastly.net/i/u/300x300/56462ecbb24e2bff5c9ddc21d9819e31.jpg',
+      'https://lastfm.freetls.fastly.net/i/u/770x0/10c6d2937edd86d132cf5002e2a1bed3.jpg#10c6d2937edd86d132cf5002e2a1bed3',
     rating: '',
     dateCompleted: '',
     createdAt: '2026-04-18T05:12:22.000Z',
@@ -517,6 +495,27 @@ const ALBUMS_MOCK_DATA = [
     urlNavidrome: '/app/#/album/37tQYy9OcJyaFv08RVxKcy/show',
   },
   {
+    id: '03d718b5-8be6-4282-92b5-9d7bc3a50bbe',
+    title: 'Yacht Rock 2',
+    artist: 'The Alchemist',
+    genre: 'Hip-Hop;Rap',
+    releaseDate: '2019-08-29',
+    description: '',
+    coverUrl:
+      'https://coverartarchive.org/release-group/9f24cf48-1c73-4e9a-b5f6-c622f9e96d59/front',
+    rating: '',
+    dateCompleted: '',
+    createdAt: '2020-02-18T05:09:32.000Z',
+    updatedAt: '2020-02-28T10:10:58.513Z',
+    mbid: '6523de7d-6a46-4f01-9ffe-c4f895f1eec7',
+    urlLastFm: 'https://www.last.fm/music/The+Alchemist/Yacht+Rock+2',
+    urlSpotify: 'https://open.spotify.com/album/1IQmCioMTatFSX6biSISx5',
+    urlAppleMusic: 'https://music.apple.com/au/album/yacht-rock-2/1475695453',
+    urlYoutube: '',
+    urlYoutubeMusic: '',
+    urlNavidrome: '/app/#/album/2eldjDRociX4USNS0kvj3p/show',
+  },
+  {
     id: 'e7c4cfc3-8936-4fad-873d-1fed8af1d6ac',
     title: 'The New Flesh',
     artist: 'Sylosis',
@@ -590,7 +589,16 @@ async function seedAlbums(db: DbType, userId: string) {
   // Add your seed data here
   const albums = await db
     .insert(schema.albums)
-    .values(ALBUMS_MOCK_DATA.map((item) => ({ ...item, userId })))
+    .values(
+      ALBUMS_MOCK_DATA.map(({ id: _id, createdAt, updatedAt, dateCompleted, rating, ...item }) => ({
+        ...item,
+        userId,
+        rating: rating ? Number(rating) : undefined,
+        dateCompleted: dateCompleted ? new Date(dateCompleted) : undefined,
+        createdAt: createdAt ? new Date(createdAt) : undefined,
+        updatedAt: updatedAt ? new Date(updatedAt) : undefined,
+      })),
+    )
     .returning()
 
   console.log(`✅ Seeded ${albums.length} albums`)

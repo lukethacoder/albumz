@@ -9,6 +9,7 @@
     "dev:logs": "docker compose -f docker-compose.dev.yml logs -f",
     "prod": "docker compose up --build",
     "prod:down": "docker compose down",
+    "prod:clean": "docker volume rm albumz_postgres_data",
     "prod:logs": "docker compose logs -f"
   },
   "workspaces": [

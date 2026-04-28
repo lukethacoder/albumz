@@ -7,8 +7,13 @@ const MB_HEADERS = {
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
 
 async function mbFetch<T>(path: string): Promise<T | null> {
-  const res = await fetch(`${MB_BASE}${path}`, { headers: MB_HEADERS })
-  if (!res.ok) return null
+  const url = `${MB_BASE}${path}`
+  console.log(`[musicbrainz] GET ${url}`)
+  const res = await fetch(url, { headers: MB_HEADERS })
+  if (!res.ok) {
+    console.warn(`[musicbrainz] ${res.status} ${res.statusText} — ${url}`)
+    return null
+  }
   return res.json() as Promise<T>
 }
 
@@ -83,23 +88,33 @@ export async function searchMusicBrainzArtwork(
   artist: string,
   album: string,
 ): Promise<string[]> {
+  console.log(`[musicbrainz] searchArtwork artist="${artist}" album="${album}"`)
   try {
     await sleep(300)
     const query = `artist:"${artist}" releasegroup:"${album}"`
     const data = await mbFetch<{
       'release-groups'?: Array<{ id: string }>
     }>(`/release-group/?query=${encodeURIComponent(query)}&limit=5&fmt=json`)
-    if (!data?.['release-groups']?.length) return []
+    if (!data?.['release-groups']?.length) {
+      console.log(`[musicbrainz] searchArtwork — no release groups found`)
+      return []
+    }
 
     const results: string[] = []
     for (const rg of data['release-groups'].slice(0, 3)) {
       await sleep(300)
       try {
-        const caaRes = await fetch(
-          `https://coverartarchive.org/release-group/${rg.id}`,
-          { headers: { Accept: 'application/json' } },
-        )
-        if (!caaRes.ok) continue
+        const caaUrl = `https://coverartarchive.org/release-group/${rg.id}`
+        console.log(`[musicbrainz] CAA GET ${caaUrl}`)
+        const caaRes = await fetch(caaUrl, {
+          headers: { Accept: 'application/json' },
+        })
+        if (!caaRes.ok) {
+          console.warn(
+            `[musicbrainz] CAA ${caaRes.status} for release-group ${rg.id}`,
+          )
+          continue
+        }
         const caaData = (await caaRes.json()) as {
           images?: Array<{
             front: boolean
@@ -116,44 +131,87 @@ export async function searchMusicBrainzArtwork(
             front.thumbnails['500'] ??
             front.image,
         )
-      } catch {
-        // skip this release-group
+      } catch (err) {
+        console.warn(`[musicbrainz] CAA error for release-group ${rg.id}`, err)
       }
     }
+    console.log(
+      `[musicbrainz] searchArtwork — found ${results.length} image(s)`,
+    )
     return results
-  } catch {
+  } catch (err) {
+    console.error(`[musicbrainz] searchArtwork error`, err)
     return []
   }
 }
 
-export async function fetchMusicBrainzGenres(
+async function fetchGenresByReleaseGroupId(
+  rgId: string,
+): Promise<string | undefined> {
+  await sleep(300)
+  const rgData = await mbFetch<{
+    genres?: Array<{ name: string; count: number }>
+  }>(`/release-group/${rgId}?inc=genres&fmt=json`)
+
+  const genres = rgData?.genres ?? []
+  if (!genres.length) {
+    console.log(`[musicbrainz] fetchGenres — no genres for rgId=${rgId}`)
+    return undefined
+  }
+
+  const result = genres
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 5)
+    .map((g) => g.name)
+    .join(';')
+  console.log(`[musicbrainz] fetchGenres — result: "${result}"`)
+  return result
+}
+
+export async function fetchMusicBrainzGenresBySearch(
   artist: string,
   album: string,
 ): Promise<string | undefined> {
+  const primaryArtist = artist.split(';')[0].trim()
+  console.log(
+    `[musicbrainz] fetchGenresBySearch artist="${primaryArtist}" album="${album}"`,
+  )
   try {
     await sleep(300)
-    const query = `artist:"${artist}" releasegroup:"${album}"`
+    const query = `artist:"${primaryArtist}" releasegroup:"${album}"`
     const searchData = await mbFetch<{
       'release-groups'?: Array<{ id: string }>
     }>(`/release-group/?query=${encodeURIComponent(query)}&limit=1&fmt=json`)
 
     const rgId = searchData?.['release-groups']?.[0]?.id
-    if (!rgId) return undefined
+    if (!rgId) {
+      console.log(`[musicbrainz] fetchGenresBySearch — no release group found`)
+      return undefined
+    }
 
-    await sleep(300)
-    const rgData = await mbFetch<{
-      genres?: Array<{ name: string; count: number }>
-    }>(`/release-group/${rgId}?inc=genres&fmt=json`)
+    return fetchGenresByReleaseGroupId(rgId)
+  } catch (err) {
+    console.error(`[musicbrainz] fetchGenresBySearch error`, err)
+    return undefined
+  }
+}
 
-    const genres = rgData?.genres ?? []
-    if (!genres.length) return undefined
+export async function fetchMusicBrainzGenresByMbid(
+  releaseMbid: string,
+): Promise<string | undefined> {
+  console.log(
+    `[musicbrainz] fetchGenresByMbid releaseMbid=${releaseMbid}`,
+  )
+  try {
+    const { releaseGroupId } = await getReleaseData(releaseMbid)
+    if (!releaseGroupId) {
+      console.log(`[musicbrainz] fetchGenresByMbid — no release group found`)
+      return undefined
+    }
 
-    return genres
-      .sort((a, b) => b.count - a.count)
-      .slice(0, 5)
-      .map((g) => g.name)
-      .join(';')
-  } catch {
+    return fetchGenresByReleaseGroupId(releaseGroupId)
+  } catch (err) {
+    console.error(`[musicbrainz] fetchGenresByMbid error`, err)
     return undefined
   }
 }
@@ -161,15 +219,18 @@ export async function fetchMusicBrainzGenres(
 export async function enrichFromMusicBrainz(
   releaseMbid: string,
 ): Promise<MusicBrainzUrlRels> {
+  console.log(`[musicbrainz] enrich releaseMbid=${releaseMbid}`)
   const { releaseGroupId, urlRels: releaseUrls } =
     await getReleaseData(releaseMbid)
 
-  if (!releaseGroupId) return releaseUrls
+  if (!releaseGroupId) {
+    console.log(`[musicbrainz] enrich — no release group found`)
+    return releaseUrls
+  }
 
   const groupUrls = await getReleaseGroupUrls(releaseGroupId)
 
-  // Merge both sources — fill any gaps in release-group data with release data
-  return {
+  const result = {
     urlSpotify: groupUrls.urlSpotify ?? releaseUrls.urlSpotify,
     urlAppleMusic: groupUrls.urlAppleMusic ?? releaseUrls.urlAppleMusic,
     urlYoutube: groupUrls.urlYoutube ?? releaseUrls.urlYoutube,
@@ -178,4 +239,6 @@ export async function enrichFromMusicBrainz(
       groupUrls.urlRateYourMusic ?? releaseUrls.urlRateYourMusic,
     releaseGroupMbid: releaseGroupId,
   }
+  console.log(`[musicbrainz] enrich — result`, result)
+  return result
 }

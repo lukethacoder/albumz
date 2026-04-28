@@ -20,16 +20,16 @@
     "db:seed": "tsx src/db/seed.ts"
   },
   "dependencies": {
-    "@trpc/server": "^11.0.0",
-    "fastify": "^5.2.0",
     "@fastify/cors": "^10.0.1",
     "@fastify/jwt": "^9.0.1",
-    "zod": "^3.24.1",
-    "superjson": "^2.2.2",
+    "@trpc/server": "^11.0.0",
     "bcrypt": "^6.0.0",
     "drizzle-orm": "^0.45.1",
+    "fastify": "^5.2.0",
     "pg": "^8.20.0",
-    "varlock": "^0.5.0"
+    "superjson": "^2.2.2",
+    "varlock": "^0.5.0",
+    "zod": "^3.24.1"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.2.0",

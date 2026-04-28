@@ -22,7 +22,7 @@ import { eq } from 'drizzle-orm'
 import {
   enrichFromMusicBrainz,
   searchMusicBrainzArtwork,
-  fetchMusicBrainzGenres,
+  fetchMusicBrainzGenresBySearch,
 } from '../services/musicbrainz.service'
 import {
   fetchNavidromeAlbumUrl,
@@ -131,7 +131,7 @@ async function runImportJob(
       )
       if (navResult?.genre) {
         addGenres(navResult.genre)
-        serviceContributed = true
+        serviceContributed = genreSet.size > 0
       }
     }
     if (
@@ -140,10 +140,12 @@ async function runImportJob(
       lastFmInfo?.genre
     ) {
       addGenres(lastFmInfo.genre)
-      serviceContributed = true
+      serviceContributed = genreSet.size > 0
     }
     if (!serviceContributed && isEnabled(enabled, 'musicbrainz')) {
-      addGenres(await fetchMusicBrainzGenres(metadata.artist, metadata.title))
+      addGenres(
+        await fetchMusicBrainzGenresBySearch(metadata.artist, metadata.title),
+      )
     }
 
     metadata.genre = genreSet.size > 0 ? [...genreSet].join(';') : undefined
@@ -213,11 +215,20 @@ async function runPlaylistImportJob(
     updateJob(jobId, { status: 'processing', step: 'fetching_metadata' })
 
     const [configRow] = await db
-      .select({ enabledExternalServices: userConfig.enabledExternalServices })
+      .select()
       .from(userConfig)
       .where(eq(userConfig.userId, userId))
       .limit(1)
     const enabled = configRow?.enabledExternalServices ?? []
+
+    const navidromeConfig =
+      configRow?.navidromeUrl && isEnabled(enabled, 'navidrome')
+        ? {
+            url: configRow.navidromeUrl,
+            username: configRow.navidromeUsername!,
+            password: decrypt(configRow.navidromePassword!),
+          }
+        : undefined
 
     const albums = await fetchSpotifyPlaylistAlbums(playlistId)
     if (albums.length === 0) {
@@ -243,36 +254,56 @@ async function runPlaylistImportJob(
     for (let i = 0; i < albums.length; i++) {
       const metadata = albums[i]
 
-      if (isEnabled(enabled, 'lastfm')) {
+      const genreSet = new Set(
+        (metadata.genre ?? '')
+          .split(';')
+          .map((g) => g.trim())
+          .filter(Boolean),
+      )
+      const addGenres = (raw: string | undefined) => {
+        if (!raw) return
+        raw
+          .split(';')
+          .map((g) => g.trim())
+          .filter(Boolean)
+          .forEach((g) => {
+            if (
+              !isNumericGenre(g) &&
+              ![...genreSet].some((e) => e.toLowerCase() === g.toLowerCase())
+            ) {
+              genreSet.add(toTitleCase(g))
+            }
+          })
+      }
+
+      if (navidromeConfig && isEnabled(enabled, 'navidrome')) {
+        const navResult = await fetchNavidromeAlbumUrl(
+          metadata.artist,
+          metadata.title,
+          navidromeConfig,
+        )
+        if (navResult?.genre) {
+          addGenres(navResult.genre)
+        }
+      }
+
+      if (genreSet.size === 0 && isEnabled(enabled, 'lastfm')) {
         const lastFm = await fetchLastFmAlbumInfo(
           metadata.artist,
           metadata.title,
         )
         if (lastFm?.coverUrl) metadata.coverUrl = lastFm.coverUrl
         if (lastFm?.mbid) metadata.mbid = lastFm.mbid
-        if (lastFm?.genre) {
-          const filtered = lastFm.genre
-            .split(';')
-            .map((g) => g.trim())
-            .filter((g) => g && !isNumericGenre(g))
-            .map(toTitleCase)
-            .join(';')
-          if (filtered) metadata.genre = filtered
-        }
+        addGenres(lastFm?.genre)
       }
 
-      if (!metadata.genre && isEnabled(enabled, 'musicbrainz')) {
-        const mbGenres = await fetchMusicBrainzGenres(metadata.artist, metadata.title)
-        if (mbGenres) {
-          const filtered = mbGenres
-            .split(';')
-            .map((g) => g.trim())
-            .filter((g) => g && !isNumericGenre(g))
-            .map(toTitleCase)
-            .join(';')
-          if (filtered) metadata.genre = filtered
-        }
+      if (genreSet.size === 0 && isEnabled(enabled, 'musicbrainz')) {
+        addGenres(
+          await fetchMusicBrainzGenresBySearch(metadata.artist, metadata.title),
+        )
       }
+
+      if (genreSet.size > 0) metadata.genre = [...genreSet].join(';')
 
       const created = await albumRepo.create({
         userId,
@@ -627,13 +658,31 @@ export const albumRouter = router({
   exportCsv: protectedProcedure.query(async ({ ctx }) => {
     const albumRepo = new AlbumRepository(ctx.db)
     const albumService = new AlbumService(albumRepo)
-    const rows = await albumService.findAll(ctx.user.id, { completionFilter: 'all', sortBy: 'dateAddedDesc' })
+    const rows = await albumService.findAll(ctx.user.id, {
+      completionFilter: 'all',
+      sortBy: 'dateAddedDesc',
+    })
 
     const COLUMNS = [
-      'id', 'title', 'artist', 'genre', 'releaseDate', 'description', 'coverUrl',
-      'rating', 'dateCompleted', 'createdAt', 'updatedAt', 'mbid',
-      'urlLastFm', 'urlSpotify', 'urlAppleMusic', 'urlYoutube', 'urlYoutubeMusic',
-      'urlRateYourMusic', 'urlNavidrome',
+      'id',
+      'title',
+      'artist',
+      'genre',
+      'releaseDate',
+      'description',
+      'coverUrl',
+      'rating',
+      'dateCompleted',
+      'createdAt',
+      'updatedAt',
+      'mbid',
+      'urlLastFm',
+      'urlSpotify',
+      'urlAppleMusic',
+      'urlYoutube',
+      'urlYoutubeMusic',
+      'urlRateYourMusic',
+      'urlNavidrome',
     ] as const
 
     function escapeCsv(value: unknown): string {
@@ -646,9 +695,11 @@ export const albumRouter = router({
     }
 
     const header = COLUMNS.join(',')
-    const body = rows.map((row) =>
-      COLUMNS.map((col) => escapeCsv(row[col as keyof typeof row])).join(',')
-    ).join('\n')
+    const body = rows
+      .map((row) =>
+        COLUMNS.map((col) => escapeCsv(row[col as keyof typeof row])).join(','),
+      )
+      .join('\n')
 
     return `${header}\n${body}`
   }),
@@ -656,7 +707,11 @@ export const albumRouter = router({
   importCsv: protectedProcedure
     .input(z.object({ csv: z.string().min(1) }))
     .mutation(async ({ input, ctx }) => {
-      const lines = input.csv.replace(/\r\n/g, '\n').replace(/\r/g, '\n').trim().split('\n')
+      const lines = input.csv
+        .replace(/\r\n/g, '\n')
+        .replace(/\r/g, '\n')
+        .trim()
+        .split('\n')
       if (lines.length < 2) return { created: 0, skipped: 0 }
 
       function parseCsvLine(line: string): string[] {
@@ -666,13 +721,17 @@ export const albumRouter = router({
         for (let i = 0; i < line.length; i++) {
           const ch = line[i]
           if (inQuotes) {
-            if (ch === '"' && line[i + 1] === '"') { current += '"'; i++ }
-            else if (ch === '"') inQuotes = false
+            if (ch === '"' && line[i + 1] === '"') {
+              current += '"'
+              i++
+            } else if (ch === '"') inQuotes = false
             else current += ch
           } else {
             if (ch === '"') inQuotes = true
-            else if (ch === ',') { fields.push(current); current = '' }
-            else current += ch
+            else if (ch === ',') {
+              fields.push(current)
+              current = ''
+            } else current += ch
           }
         }
         fields.push(current)
@@ -688,14 +747,26 @@ export const albumRouter = router({
         if (!line.trim()) continue
         const values = parseCsvLine(line)
         const row: Record<string, string> = {}
-        headers.forEach((h, i) => { row[h] = values[i] ?? '' })
+        headers.forEach((h, i) => {
+          row[h] = values[i] ?? ''
+        })
 
         const title = row.title?.trim()
         const artist = row.artist?.trim()
-        if (!title || !artist) { skipped++; continue }
+        if (!title || !artist) {
+          skipped++
+          continue
+        }
 
-        const existing = await albumRepo.findByTitleAndArtist(title, artist, ctx.user.id)
-        if (existing) { skipped++; continue }
+        const existing = await albumRepo.findByTitleAndArtist(
+          title,
+          artist,
+          ctx.user.id,
+        )
+        if (existing) {
+          skipped++
+          continue
+        }
 
         try {
           await albumRepo.create({
@@ -707,7 +778,9 @@ export const albumRouter = router({
             description: row.description || null,
             coverUrl: row.coverUrl || null,
             rating: row.rating ? parseFloat(row.rating) : null,
-            dateCompleted: row.dateCompleted ? new Date(row.dateCompleted) : null,
+            dateCompleted: row.dateCompleted
+              ? new Date(row.dateCompleted)
+              : null,
             mbid: row.mbid || null,
             urlLastFm: row.urlLastFm || null,
             urlSpotify: row.urlSpotify || null,

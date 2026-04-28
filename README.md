@@ -1,6 +1,24 @@
-# albumz
+<a name="readme-top"></a>
 
-💿 self-hosted album backlog tracker
+<!-- PROJECT LOGO -->
+<br />
+<div align="center">
+  <a href="https://github.com/lukethacoder/albumz">
+    <img width="180" src="./docs/icon.png" alt="albumz logo">
+  </a>
+
+<h3 align="center">albumz</h3>
+  <p align="center">
+    Self-hosted album tracker
+    <br />
+    Integrates with your audio streamer of choice (Spotify, AppleMusic, YouTube, Navidrome)
+    <br />
+    <br />
+    <a href="https://github.com/lukethacoder/albumz/issues">Report Bug</a>
+    ·
+    <a href="https://github.com/lukethacoder/albumz/issues">Request Feature</a>
+  </p>
+</div>
 
 ## Features
 
@@ -25,7 +43,7 @@ Albumz ships as a single Docker image that runs the API, client, and migrations 
 **1. Download the example compose file:**
 
 ```bash
-curl -o docker-compose.yml https://raw.githubusercontent.com/OWNER/albumz/main/docker-compose.example.yml
+curl -o docker-compose.yml https://raw.githubusercontent.com/lukethacoder/albumz/main/docker-compose.example.yml
 ```
 
 **2. Create a `.env` file** in the same directory:

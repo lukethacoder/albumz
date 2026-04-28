@@ -4,7 +4,7 @@
 <br />
 <div align="center">
   <a href="https://github.com/lukethacoder/albumz">
-    <img width="180" src="./docs/icon.png" alt="albumz logo">
+    <img width="180" src="./docs/logo.png" alt="albumz logo">
   </a>
 
 <h3 align="center">albumz</h3>

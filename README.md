@@ -71,17 +71,17 @@ Migrations run automatically on startup. The app is available at `http://localho
 
 ### Environment Variables
 
-| Variable                | Required | Default                 | Description                          |
-| ----------------------- | -------- | ----------------------- | ------------------------------------ |
-| `POSTGRES_USER`         | Yes      | `admin`                 | PostgreSQL username                  |
-| `POSTGRES_PASSWORD`     | Yes      | —                       | PostgreSQL password                  |
-| `POSTGRES_DB`           | Yes      | `albumz`                | PostgreSQL database name             |
-| `JWT_SECRET`            | Yes      | —                       | Secret used to sign JWT tokens       |
-| `JWT_EXPIRES_IN`        | No       | `3600s`                 | Token lifetime (e.g. `3600s`, `24h`) |
-| `ORIGIN`                | Yes      | `http://localhost:3000` | Public URL the app is served from    |
-| `LASTFM_API_KEY`        | No       | —                       | Enables Last.fm metadata and linking |
-| `SPOTIFY_CLIENT_ID`     | No       | —                       | Enables Spotify URL import           |
-| `SPOTIFY_CLIENT_SECRET` | No       | —                       | Enables Spotify URL import           |
+| Variable                | Required | Default                 | Description                                                                                                  |
+| ----------------------- | -------- | ----------------------- | ------------------------------------------------------------------------------------------------------------ |
+| `POSTGRES_USER`         | Yes      | `admin`                 | PostgreSQL username                                                                                          |
+| `POSTGRES_PASSWORD`     | Yes      | —                       | PostgreSQL password                                                                                          |
+| `POSTGRES_DB`           | Yes      | `albumz`                | PostgreSQL database name                                                                                     |
+| `JWT_SECRET`            | Yes      | —                       | Secret used to sign JWT tokens (NOTE: if this changes, you'll need to reconfigure your Navidrome connection) |
+| `JWT_EXPIRES_IN`        | No       | `3600s`                 | Token lifetime (e.g. `3600s`, `24h`)                                                                         |
+| `ORIGIN`                | Yes      | `http://localhost:3000` | Public URL the app is served from                                                                            |
+| `LASTFM_API_KEY`        | No       | —                       | Enables Last.fm metadata and linking                                                                         |
+| `SPOTIFY_CLIENT_ID`     | No       | —                       | Enables Spotify URL import                                                                                   |
+| `SPOTIFY_CLIENT_SECRET` | No       | —                       | Enables Spotify URL import                                                                                   |
 
 ### Deploying behind a reverse proxy
 
@@ -102,7 +102,7 @@ albumz relies on several external services for metadata and album artwork. Exter
 | YouTube         | ✔          | ❓           | N/A                                                  | YouTube Thumbnails are used as a last resort of the artwork is unable to be sourced otherwise. You can always fix the title/artist and manually select via the artwork selector. |
 | MusicBrainz     | ❌         | ✔            | N/A                                                  | Image URLs are sourced from MusicBrainz, but are hosted on CoverArtArchive                                                                                                       |
 | Navidrome       | ❌         | ✔            | User specific Navidrome Configuration (Profile page) | If you have this behind a reverse proxy, images may not load when you are not on your VPN/Tailscale                                                                              |
-| AppleMusic      | ✔         | ❌           | N/A                                                  | URLs to AppleMusic are sourced via MusicBrainz                                                                                                                                   |
+| AppleMusic      | ✔          | ❌           | N/A                                                  | URLs to AppleMusic are sourced via MusicBrainz                                                                                                                                   |
 | Rate Your Music | ❌         | ❌           | N/A                                                  | URLs to Rate Your Music are sourced via MusicBrainz                                                                                                                              |
 
 ## Development
@@ -164,7 +164,8 @@ git tag v0.1.0
 git push origin v0.1.0
 
 # Authenticate
-echo $(gh auth token) | docker login ghcr.io -u lukethacoder --password-stdin
+# echo $(gh auth token) | docker login ghcr.io -u lukethacoder --password-stdin
+gh auth token | docker login … --password-stdin
 
 # Build & tag
 docker build -t ghcr.io/lukethacoder/albumz:0.1.0 -t ghcr.io/lukethacoder/albumz:latest .

@@ -82,7 +82,7 @@ services:
       - PORT=3000
       - DATABASE_URL=postgresql://${POSTGRES_USER:-admin}:${POSTGRES_PASSWORD:-password}@postgres:5432/${POSTGRES_DB:-albumz}
       - CORS_ORIGIN=http://localhost:5173
-      - JWT_SECRET=${JWT_SECRET:-your-secret-key-change-this-in-production}
+      - JWT_SECRET=${JWT_SECRET}
       # Optional integrations — set these in your root .env to enable them
       - LASTFM_API_KEY=${LASTFM_API_KEY:-}
       - SPOTIFY_CLIENT_ID=${SPOTIFY_CLIENT_ID:-}

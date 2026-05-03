@@ -30,6 +30,9 @@
 - Extensive sorting and filtering
 - i18n Support\* (English and Dutch, PRs welcome for extending)
 
+![](./docs/screenshot-grid.jpg)
+![](./docs/screenshot-table.jpg)
+
 ## Deployment
 
 Albumz ships as a single Docker image that runs the API, client, and migrations together. You bring your own PostgreSQL database.

@@ -29,6 +29,9 @@ importers:
       drizzle-orm:
         specifier: ^0.45.1
         version: 0.45.1(@types/pg@8.18.0)(kysely@0.27.6)(pg@8.20.0)
+      drizzle-zod:
+        specifier: ^0.7.1
+        version: 0.7.1(drizzle-orm@0.45.1(@types/pg@8.18.0)(kysely@0.27.6)(pg@8.20.0))(zod@3.25.76)
       fastify:
         specifier: ^5.2.0
         version: 5.10.0
@@ -147,6 +150,9 @@ importers:
       superjson:
         specifier: ^2.2.2
         version: 2.2.6
+      zod:
+        specifier: ^3.25.76
+        version: 3.25.76
     devDependencies:
       '@eslint/compat':
         specifier: ^2.0.2
@@ -2694,6 +2700,12 @@ packages:
         optional: true
       sqlite3:
         optional: true
+
+  drizzle-zod@0.7.1:
+    resolution: {integrity: sha512-nZzALOdz44/AL2U005UlmMqaQ1qe5JfanvLujiTHiiT8+vZJTBFhj3pY4Vk+L6UWyKFfNmLhk602Hn4kCTynKQ==}
+    peerDependencies:
+      drizzle-orm: '>=0.36.0'
+      zod: '>=3.0.0'
 
   dunder-proto@1.0.1:
     resolution: {integrity: sha512-KIN/nDJBQRcXw0MLVhZE9iQHmG68qAVIBg9CqmUYjmQIhgij9U5MFvrqkUL5FbtyyzZuOeOt0zdeRe4UY7ct+A==}
@@ -7164,6 +7176,11 @@ snapshots:
       '@types/pg': 8.18.0
       kysely: 0.27.6
       pg: 8.20.0
+
+  drizzle-zod@0.7.1(drizzle-orm@0.45.1(@types/pg@8.18.0)(kysely@0.27.6)(pg@8.20.0))(zod@3.25.76):
+    dependencies:
+      drizzle-orm: 0.45.1(@types/pg@8.18.0)(kysely@0.27.6)(pg@8.20.0)
+      zod: 3.25.76
 
   dunder-proto@1.0.1:
     dependencies:

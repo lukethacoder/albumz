@@ -26,10 +26,8 @@ export const authRouter = router({
 
   login: publicProcedure.input(loginSchema).mutation(async ({ input, ctx }) => {
     const userRepo = new UserRepository(ctx.db)
-    const authService = new AuthService(
-      userRepo,
-      passwordService,
-      (payload) => ctx.req.server.jwt.sign(payload),
+    const authService = new AuthService(userRepo, passwordService, (payload) =>
+      ctx.req.server.jwt.sign(payload),
     )
 
     const user = await authService.validateUser(input.email, input.password)
@@ -45,8 +43,14 @@ export const authRouter = router({
   }),
 
   profile: protectedProcedure.query(async ({ ctx }) => {
-    // ctx.user is guaranteed to be non-null in protectedProcedure
-    const { password, ...userWithoutPassword } = ctx.user
+    // Identity comes from the token; the full record is fetched explicitly here,
+    // the one procedure that needs more than ctx.user.id.
+    const userRepo = new UserRepository(ctx.db)
+    const authService = new AuthService(userRepo, passwordService, (payload) =>
+      ctx.req.server.jwt.sign(payload),
+    )
+    const user = await authService.getUserById(ctx.user.id)
+    const { password: _password, ...userWithoutPassword } = user
     return userWithoutPassword
   }),
 })

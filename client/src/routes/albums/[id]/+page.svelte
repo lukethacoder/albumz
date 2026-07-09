@@ -7,6 +7,7 @@
   import { albumsStore } from '$lib/stores/albums.svelte'
   import { trpc } from '$lib/trpc/client'
   import { invalidateAll } from '$app/navigation'
+  import { resolve } from '$app/paths'
   import { TRPCClientError } from '@trpc/client'
   import { Dialog } from 'bits-ui'
 
@@ -120,8 +121,6 @@
     }
   }
 
-  type Link = { icon?: SimpleIcon; iconUrl?: string; label: string; url: string }
-
   const links = $derived(
     [
       album.urlLastFm && isServiceEnabled('lastfm')
@@ -222,7 +221,8 @@
               .map((a) => a.trim())
               .filter(Boolean) as a, i (a)}
               {#if i > 0}<span>, </span>{/if}
-              <a href="/?search={encodeURIComponent(a)}" class="hover:underline">{a}</a>
+              <a href="{resolve('/')}?search={encodeURIComponent(a)}" class="hover:underline">{a}</a
+              >
             {/each}
             •
             <span class="capitalize"> {m.release_date()} {album.releaseDate ?? 'Unknown'}</span>
@@ -235,7 +235,7 @@
                 .filter(Boolean) as g, i (g)}
                 {#if i > 0}<span>&nbsp;•</span>{/if}
                 <a
-                  href="/?genres={encodeURIComponent(g)}"
+                  href="{resolve('/')}?genres={encodeURIComponent(g)}"
                   class="transition hover:text-neutral-400 hover:underline">{g}</a
                 >
               {/each}
@@ -316,6 +316,7 @@
           <ul class="flex gap-3">
             {#each links as link (link.url)}
               <li>
+                <!-- eslint-disable svelte/no-navigation-without-resolve -->
                 <a
                   href={link.url}
                   aria-label={link.label}
@@ -335,6 +336,7 @@
                     <img src={link.iconUrl} alt={link.label} />
                   {/if}
                 </a>
+                <!-- eslint-enable svelte/no-navigation-without-resolve -->
               </li>
             {/each}
           </ul>

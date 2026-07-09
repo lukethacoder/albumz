@@ -1,1 +1,1 @@
-export * as StarRating from './exports'
+export { default as Root } from './component.svelte'

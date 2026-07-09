@@ -256,10 +256,19 @@
       {#if canCreateNew}
         <button
           type="button"
-          onmousedown={(e) => { e.preventDefault(); addNewValue() }}
+          onmousedown={(e) => {
+            e.preventDefault()
+            addNewValue()
+          }}
           class="flex w-full cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-sm text-zinc-500 transition hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800"
         >
-          <svg class="size-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <svg
+            class="size-3.5 shrink-0"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
             <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
           </svg>
           Create "<span class="font-medium text-zinc-300">{searchValue.trim()}</span>"

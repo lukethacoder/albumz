@@ -130,7 +130,7 @@
       {#each artists as a, i (a)}
         {#if i > 0}<span>, </span>{/if}
         <a
-          href="/?search={encodeURIComponent(a)}"
+          href="{resolve('/')}?search={encodeURIComponent(a)}"
           class="relative z-20 hover:underline"
           onclick={(e) => e.stopPropagation()}>{a}</a
         >

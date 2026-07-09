@@ -103,7 +103,7 @@
     {#each artists as a, i (a)}
       {#if i > 0}<span class="text-neutral-600">, </span>{/if}
       <a
-        href="/?search={encodeURIComponent(a)}"
+        href="{resolve('/')}?search={encodeURIComponent(a)}"
         onclick={(e) => e.stopPropagation()}
         class="hover:text-neutral-200 hover:underline">{a}</a
       >
@@ -123,7 +123,7 @@
           .filter(Boolean) as g, i (g)}
           {#if i > 0}<span class="text-neutral-600">•</span>{/if}
           <a
-            href="/?genres={encodeURIComponent(g)}"
+            href="{resolve('/')}?genres={encodeURIComponent(g)}"
             onclick={(e) => e.stopPropagation()}
             class="hover:text-neutral-300 hover:underline">{g}</a
           >
@@ -148,13 +148,11 @@
             >{getRelativeTime(new Date(createdAt), new Date(), true)}</span
           >
         {/snippet}
-        {#snippet children()}
-          {new Date(createdAt).toLocaleDateString(navigator.language, {
-            day: 'numeric',
-            month: 'short',
-            year: 'numeric',
-          })}
-        {/snippet}
+        {new Date(createdAt).toLocaleDateString(navigator.language, {
+          day: 'numeric',
+          month: 'short',
+          year: 'numeric',
+        })}
       </Tooltip.Root>
     {:else}
       —

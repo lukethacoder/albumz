@@ -1,7 +1,7 @@
 import { trpc } from '$lib/trpc/client'
 import { goto } from '$app/navigation'
 import { invalidateAll } from '$app/navigation'
-import type { TRPCClientError } from '@trpc/client'
+import { resolve } from '$app/paths'
 
 interface Album {
   id: string
@@ -80,7 +80,7 @@ export const albumsStore = {
 
       return updated
     } catch (err) {
-      const error = err as TRPCClientError<any>
+      const error = err as { message?: string }
       op.error = error.message || 'Failed to update album'
       console.error('Update album error:', err)
       return null
@@ -104,7 +104,7 @@ export const albumsStore = {
 
       if (redirectAfter) {
         // Redirect to home page
-        goto('/')
+        goto(resolve('/'))
       } else {
         // Just refresh the current page data
         await invalidateAll()
@@ -112,7 +112,7 @@ export const albumsStore = {
 
       return true
     } catch (err) {
-      const error = err as TRPCClientError<any>
+      const error = err as { message?: string }
       op.error = error.message || 'Failed to delete album'
       console.error('Delete album error:', err)
       return false
@@ -124,11 +124,7 @@ export const albumsStore = {
   /**
    * Delete with confirmation dialog
    */
-  async deleteWithConfirm(
-    id: string,
-    albumTitle: string,
-    redirectAfter = false,
-  ): Promise<boolean> {
+  async deleteWithConfirm(id: string, albumTitle: string, redirectAfter = false): Promise<boolean> {
     const confirmed = confirm(
       `Are you sure you want to delete "${albumTitle}"? This action cannot be undone.`,
     )
@@ -156,7 +152,7 @@ export const albumsStore = {
 
       return updated
     } catch (err) {
-      const error = err as TRPCClientError<any>
+      const error = err as { message?: string }
       op.error = error.message || 'Failed to update completion status'
       console.error('Mark complete error:', err)
       return null
@@ -170,10 +166,7 @@ export const albumsStore = {
    * @param id Album ID
    * @param currentlyCompleted Current completion status
    */
-  async toggleComplete(
-    id: string,
-    currentlyCompleted: boolean,
-  ): Promise<Album | null> {
+  async toggleComplete(id: string, currentlyCompleted: boolean): Promise<Album | null> {
     return this.markComplete(id, !currentlyCompleted)
   },
 }

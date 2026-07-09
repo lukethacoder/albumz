@@ -1,5 +1,6 @@
 import type { PageServerLoad } from './$types'
 import { createServerTRPCClient } from '$lib/trpc/client.server'
+import { deriveFilterOptions } from '$lib/loaders'
 import { resolve } from '$app/paths'
 import { redirect } from '@sveltejs/kit'
 import { TRPCClientError } from '@trpc/client'
@@ -14,13 +15,7 @@ export const load: PageServerLoad = async ({ params, cookies }) => {
       trpc.albums.list.query({ completionFilter: 'all', sortBy: 'dateAddedDesc' }),
     ])
 
-    const availableGenres = Array.from(
-      new Set(
-        allAlbums.flatMap((a) =>
-          a.genre ? a.genre.split(';').map((g) => g.trim()).filter(Boolean) : [],
-        ),
-      ),
-    ).sort()
+    const { availableGenres } = deriveFilterOptions(allAlbums)
 
     return { album, availableGenres }
   } catch (error) {

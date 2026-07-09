@@ -78,7 +78,9 @@
 
       <div class="space-y-4">
         <div>
-          <label for="email" class="block text-sm font-medium text-gray-700">{m.email_address()}</label>
+          <label for="email" class="block text-sm font-medium text-gray-700"
+            >{m.email_address()}</label
+          >
           <input
             id="email"
             name="email"
@@ -91,7 +93,9 @@
         </div>
 
         <div>
-          <label for="username" class="block text-sm font-medium text-gray-700">{m.username()}</label>
+          <label for="username" class="block text-sm font-medium text-gray-700"
+            >{m.username()}</label
+          >
           <input
             id="username"
             name="username"
@@ -104,7 +108,9 @@
         </div>
 
         <div>
-          <label for="password" class="block text-sm font-medium text-gray-700">{m.password()}</label>
+          <label for="password" class="block text-sm font-medium text-gray-700"
+            >{m.password()}</label
+          >
           <input
             id="password"
             name="password"

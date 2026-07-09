@@ -23,5 +23,6 @@
     "strictBindCallApply": false,
     "noFallthroughCasesInSwitch": false,
   },
+  "include": ["src/**/*", "env.d.ts"],
   "exclude": ["node_modules", "dist", "drizzle.config.ts", "test"],
 }

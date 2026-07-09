@@ -9,7 +9,6 @@
     size = 'md',
     ref = $bindable(null),
     loading = false,
-    disabled = false,
     iconLeft,
     iconRight,
     children,
@@ -89,7 +88,6 @@
   }
 
   let themeVariantClasses = $derived(variantMap[variant][resolvedTheme as CoreTheme])
-  let isDisabled = $derived(disabled || loading)
 </script>
 
 <!-- disabled={isDisabled} -->

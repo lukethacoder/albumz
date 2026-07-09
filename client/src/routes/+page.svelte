@@ -8,6 +8,7 @@
   import { Check, Trash2, X, LayoutGrid, List, Shuffle, Disc, ExternalLink } from '@lucide/svelte'
   import { Dialog } from 'bits-ui'
   import { resolve } from '$app/paths'
+  import { SvelteURLSearchParams } from 'svelte/reactivity'
   import { siApplemusic, siLastdotfm, siMusicbrainz, siSpotify, siYoutube } from 'simple-icons'
 
   // albums from server load
@@ -73,7 +74,7 @@
   })
 
   function updateUrl() {
-    const params = new URLSearchParams()
+    const params = new SvelteURLSearchParams()
     if (searchQuery.trim()) params.set('search', searchQuery.trim())
     if (minYear) params.set('minYear', minYear)
     if (maxYear) params.set('maxYear', maxYear)
@@ -85,7 +86,8 @@
     const currentUrl = `?${$page.url.searchParams.toString()}`
 
     if (newUrl !== currentUrl) {
-      goto(newUrl, { keepFocus: true, noScroll: true, replaceState: true })
+      // eslint-disable-next-line svelte/no-navigation-without-resolve -- same-route query-string update
+      goto(`${resolve('/')}${newUrl}`, { keepFocus: true, noScroll: true, replaceState: true })
     }
   }
 
@@ -117,6 +119,7 @@
   })
 
   function toggleSelect(albumId: string, shiftKey: boolean) {
+    // eslint-disable-next-line svelte/prefer-svelte-reactivity -- assigned to $state selectedIds; reactivity via reassignment
     const next = new Set(selectedIds)
     const ids = data.albums.map((a) => a.id)
 
@@ -380,7 +383,7 @@
                   <LayoutGrid class="h-4 w-4" />
                 </button>
               {/snippet}
-              {#snippet children()}Grid view{/snippet}
+              Grid view
             </Tooltip.Root>
             <Tooltip.Root>
               {#snippet trigger()}
@@ -393,7 +396,7 @@
                   <List class="h-4 w-4" />
                 </button>
               {/snippet}
-              {#snippet children()}List view{/snippet}
+              List view
             </Tooltip.Root>
           </div>
         </div>
@@ -567,7 +570,9 @@
                 .map((a) => a.trim())
                 .filter(Boolean) as a, i (a)}
                 {#if i > 0}<span>, </span>{/if}
-                <a href="/?search={encodeURIComponent(a)}" class="hover:underline">{a}</a>
+                <a href="{resolve('/')}?search={encodeURIComponent(a)}" class="hover:underline"
+                  >{a}</a
+                >
               {/each}
             </p>
             {#if randomAlbum.releaseDate}
@@ -590,6 +595,7 @@
           <ul class="mt-4 flex gap-3">
             {#each randomLinks as link (link.url)}
               <li>
+                <!-- eslint-disable svelte/no-navigation-without-resolve -->
                 <a
                   href={link.url}
                   aria-label={link.label}
@@ -608,6 +614,7 @@
                     <img src={link.iconUrl} alt={link.label} />
                   {/if}
                 </a>
+                <!-- eslint-enable svelte/no-navigation-without-resolve -->
               </li>
             {/each}
           </ul>

@@ -199,9 +199,7 @@ export async function fetchMusicBrainzGenresBySearch(
 export async function fetchMusicBrainzGenresByMbid(
   releaseMbid: string,
 ): Promise<string | undefined> {
-  console.log(
-    `[musicbrainz] fetchGenresByMbid releaseMbid=${releaseMbid}`,
-  )
+  console.log(`[musicbrainz] fetchGenresByMbid releaseMbid=${releaseMbid}`)
   try {
     const { releaseGroupId } = await getReleaseData(releaseMbid)
     if (!releaseGroupId) {

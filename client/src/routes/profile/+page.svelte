@@ -48,7 +48,10 @@
     try {
       const csv = await file.text()
       const result = await trpc.albums.importCsv.mutate({ csv })
-      importMessage = { type: 'success', text: m.csv_import_success({ created: result.created, skipped: result.skipped }) }
+      importMessage = {
+        type: 'success',
+        text: m.csv_import_success({ created: result.created, skipped: result.skipped }),
+      }
       await invalidateAll()
     } catch {
       importMessage = { type: 'error', text: m.csv_import_error() }
@@ -300,9 +303,20 @@
           <Download class="h-4 w-4" />
           {m.export_csv()}
         </Button.Root>
-        <Button.Root variant="outline" theme="neutral" onclick={handleImport} disabled={importLoading}>
+        <Button.Root
+          variant="outline"
+          theme="neutral"
+          onclick={handleImport}
+          disabled={importLoading}
+        >
           {#if importLoading}
-            <svg class="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <svg
+              class="h-4 w-4 animate-spin"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
               <path d="M21 12a9 9 0 1 1-6.219-8.56" />
             </svg>
           {:else}
@@ -313,7 +327,11 @@
       </div>
 
       {#if importMessage}
-        <p class="mt-3 text-sm {importMessage.type === 'success' ? 'text-emerald-400' : 'text-red-400'}">
+        <p
+          class="mt-3 text-sm {importMessage.type === 'success'
+            ? 'text-emerald-400'
+            : 'text-red-400'}"
+        >
           {importMessage.text}
         </p>
       {/if}

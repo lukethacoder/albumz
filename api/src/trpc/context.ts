@@ -1,16 +1,23 @@
 /// <reference types="@fastify/jwt" />
 import type { FastifyRequest, FastifyReply } from 'fastify'
 import { db } from '../db/database'
-import type { User } from '../db/schema'
-import { users } from '../db/schema'
-import { eq } from 'drizzle-orm'
 import { AlbumModule } from '../repositories/album.repository'
+
+/**
+ * The verified caller identity, taken directly from the signed JWT's `sub`
+ * claim. We do not re-fetch the user row per request: the token already asserts
+ * this identity. Procedures that need the full user record fetch it explicitly
+ * (see `auth.router` `profile`), making that cost visible at the call site.
+ */
+export interface Identity {
+  id: string
+}
 
 export interface Context {
   req: FastifyRequest
   res: FastifyReply
   db: typeof db
-  user: User | null
+  user: Identity | null
   albums: AlbumModule
 }
 
@@ -21,21 +28,15 @@ export async function createContext({
   req: FastifyRequest
   res: FastifyReply
 }): Promise<Context> {
-  let user: User | null = null
+  let user: Identity | null = null
 
-  // Try to verify JWT and fetch user if token is present
+  // Verify the JWT if present. The `sub` claim is the trusted identity;
+  // no database lookup is performed here.
   try {
     const decoded = await req.jwtVerify<{ sub: string }>()
 
     if (decoded?.sub) {
-      // Fetch user from database
-      const [dbUser] = await db
-        .select()
-        .from(users)
-        .where(eq(users.id, decoded.sub))
-        .limit(1)
-
-      user = dbUser || null
+      user = { id: decoded.sub }
     }
   } catch {
     // JWT verification failed or no token present - user remains null

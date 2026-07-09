@@ -4,12 +4,14 @@ import { db } from '../db/database'
 import type { User } from '../db/schema'
 import { users } from '../db/schema'
 import { eq } from 'drizzle-orm'
+import { AlbumModule } from '../repositories/album.repository'
 
 export interface Context {
   req: FastifyRequest
   res: FastifyReply
   db: typeof db
   user: User | null
+  albums: AlbumModule
 }
 
 export async function createContext({
@@ -44,6 +46,7 @@ export async function createContext({
     res,
     db,
     user,
+    albums: new AlbumModule(db),
   }
 }
 

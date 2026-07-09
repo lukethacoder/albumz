@@ -6,8 +6,7 @@ import {
   updateAlbumSchema,
   albumFilterSchema,
 } from '../schemas/album.schema'
-import { AlbumService } from '../services/album.service'
-import { AlbumRepository } from '../repositories/album.repository'
+import { AlbumModule } from '../repositories/album.repository'
 import { createJob, updateJob, getJob } from '../services/job-store'
 import {
   fetchMetadata,
@@ -15,7 +14,6 @@ import {
   fetchCoverArtFromMbid,
   fetchSpotifyPlaylistAlbums,
   searchSpotifyArtwork,
-  searchAppleMusicGenre,
   parseUrl,
 } from '../services/url-import.service'
 import { eq } from 'drizzle-orm'
@@ -32,6 +30,10 @@ import { decrypt } from '../services/encryption.service'
 import { userConfig } from '../db/schema/navidrome.schema'
 import { db } from '../db/database'
 import type { Database } from '../db/database'
+
+// Album module bound to the standalone db instance, for use by background
+// jobs that run outside a tRPC request context.
+const albumModule = new AlbumModule(db)
 
 function isEnabled(enabledServices: string[], key: string): boolean {
   return enabledServices.length === 0 || enabledServices.includes(key)
@@ -151,9 +153,7 @@ async function runImportJob(
     metadata.genre = genreSet.size > 0 ? [...genreSet].join(';') : undefined
 
     updateJob(jobId, { step: 'saving' })
-    const albumRepo = new AlbumRepository(db)
-    const albumService = new AlbumService(albumRepo)
-    const album = await albumService.create(metadata, userId)
+    const album = await albumModule.create(metadata, userId)
 
     updateJob(jobId, { step: 'fetching_links' })
     const linkUpdates: Record<string, string> = {}
@@ -191,7 +191,7 @@ async function runImportJob(
     }
 
     if (Object.keys(linkUpdates).length > 0) {
-      await albumService.update(album.id, userId, linkUpdates)
+      await albumModule.update(album.id, userId, linkUpdates)
     }
 
     updateJob(jobId, {
@@ -247,8 +247,6 @@ async function runPlaylistImportJob(
       step: 'saving',
     })
 
-    const albumRepo = new AlbumRepository(db)
-    const albumService = new AlbumService(albumRepo)
     const createdAlbumIds: string[] = []
 
     for (let i = 0; i < albums.length; i++) {
@@ -305,7 +303,7 @@ async function runPlaylistImportJob(
 
       if (genreSet.size > 0) metadata.genre = [...genreSet].join(';')
 
-      const created = await albumRepo.create({
+      const created = await albumModule.insert({
         userId,
         title: metadata.title,
         artist: metadata.artist,
@@ -343,9 +341,7 @@ async function enrichAlbum(
   skipArtwork = false,
 ): Promise<void> {
   try {
-    const albumRepo = new AlbumRepository(db)
-    const albumService = new AlbumService(albumRepo)
-    const album = await albumService.findById(albumId, userId)
+    const album = await albumModule.findById(albumId, userId)
 
     const [configRow] = await db
       .select()
@@ -408,7 +404,7 @@ async function enrichAlbum(
     }
 
     if (Object.keys(updates).length > 0) {
-      await albumService.update(albumId, userId, updates)
+      await albumModule.update(albumId, userId, updates)
     }
   } catch {
     // Background enrichment — swallow errors silently
@@ -439,12 +435,7 @@ export const albumRouter = router({
   list: protectedProcedure
     .input(albumFilterSchema)
     .query(async ({ input, ctx }) => {
-      const albumRepo = new AlbumRepository(ctx.db)
-      const albumService = new AlbumService(albumRepo)
-
-      const albums = input.artist
-        ? await albumService.findByArtist(input.artist, ctx.user.id)
-        : await albumService.findAll(ctx.user.id, input)
+      const albums = await ctx.albums.findAll(ctx.user.id, input)
 
       if (albums.some((a) => a.urlNavidrome)) {
         const baseUrl = await getNavidromeBaseUrl(ctx.db, ctx.user.id)
@@ -457,9 +448,7 @@ export const albumRouter = router({
   getById: protectedProcedure
     .input(z.object({ id: z.string().uuid() }))
     .query(async ({ input, ctx }) => {
-      const albumRepo = new AlbumRepository(ctx.db)
-      const albumService = new AlbumService(albumRepo)
-      const album = await albumService.findById(input.id, ctx.user.id)
+      const album = await ctx.albums.findById(input.id, ctx.user.id)
 
       if (album.urlNavidrome) {
         const baseUrl = await getNavidromeBaseUrl(ctx.db, ctx.user.id)
@@ -472,9 +461,7 @@ export const albumRouter = router({
   create: protectedProcedure
     .input(createAlbumSchema)
     .mutation(async ({ input, ctx }) => {
-      const albumRepo = new AlbumRepository(ctx.db)
-      const albumService = new AlbumService(albumRepo)
-      return albumService.create(input, ctx.user.id)
+      return ctx.albums.create(input, ctx.user.id)
     }),
 
   createFromUrl: protectedProcedure
@@ -543,26 +530,20 @@ export const albumRouter = router({
   update: protectedProcedure
     .input(z.object({ id: z.string().uuid(), data: updateAlbumSchema }))
     .mutation(async ({ input, ctx }) => {
-      const albumRepo = new AlbumRepository(ctx.db)
-      const albumService = new AlbumService(albumRepo)
-      return albumService.update(input.id, ctx.user.id, input.data)
+      return ctx.albums.update(input.id, ctx.user.id, input.data)
     }),
 
   delete: protectedProcedure
     .input(z.object({ id: z.string().uuid() }))
     .mutation(async ({ input, ctx }) => {
-      const albumRepo = new AlbumRepository(ctx.db)
-      const albumService = new AlbumService(albumRepo)
-      await albumService.delete(input.id, ctx.user.id)
+      await ctx.albums.delete(input.id, ctx.user.id)
       return { success: true }
     }),
 
   refreshMetadata: protectedProcedure
     .input(z.object({ id: z.string().uuid() }))
     .mutation(async ({ input, ctx }) => {
-      const albumRepo = new AlbumRepository(ctx.db)
-      const albumService = new AlbumService(albumRepo)
-      const album = await albumService.findById(input.id, ctx.user.id)
+      const album = await ctx.albums.findById(input.id, ctx.user.id)
 
       // Validate that enrichment is possible before delegating
       if (!album.mbid) {
@@ -585,18 +566,15 @@ export const albumRouter = router({
       }
 
       await enrichAlbum(input.id, ctx.user.id, true)
-      return albumService.findById(input.id, ctx.user.id)
+      return ctx.albums.findById(input.id, ctx.user.id)
     }),
 
   markComplete: protectedProcedure
     .input(z.object({ id: z.string().uuid(), completed: z.boolean() }))
     .mutation(async ({ input, ctx }) => {
-      const albumRepo = new AlbumRepository(ctx.db)
-      const albumService = new AlbumService(albumRepo)
-
       const dateCompleted = input.completed ? new Date() : null
 
-      return albumService.update(input.id, ctx.user.id, { dateCompleted })
+      return ctx.albums.update(input.id, ctx.user.id, { dateCompleted })
     }),
 
   findArtwork: protectedProcedure
@@ -656,9 +634,7 @@ export const albumRouter = router({
     }),
 
   exportCsv: protectedProcedure.query(async ({ ctx }) => {
-    const albumRepo = new AlbumRepository(ctx.db)
-    const albumService = new AlbumService(albumRepo)
-    const rows = await albumService.findAll(ctx.user.id, {
+    const rows = await ctx.albums.findAll(ctx.user.id, {
       completionFilter: 'all',
       sortBy: 'dateAddedDesc',
     })
@@ -687,7 +663,14 @@ export const albumRouter = router({
 
     function escapeCsv(value: unknown): string {
       if (value === null || value === undefined) return ''
-      const str = value instanceof Date ? value.toISOString() : String(value)
+      let str: string
+      if (value instanceof Date) {
+        str = value.toISOString()
+      } else if (typeof value === 'object') {
+        str = JSON.stringify(value)
+      } else {
+        str = String(value as string | number | boolean | bigint | symbol)
+      }
       if (str.includes(',') || str.includes('"') || str.includes('\n')) {
         return `"${str.replace(/"/g, '""')}"`
       }
@@ -739,7 +722,6 @@ export const albumRouter = router({
       }
 
       const headers = parseCsvLine(lines[0])
-      const albumRepo = new AlbumRepository(ctx.db)
       let created = 0
       let skipped = 0
 
@@ -758,7 +740,7 @@ export const albumRouter = router({
           continue
         }
 
-        const existing = await albumRepo.findByTitleAndArtist(
+        const existing = await ctx.albums.findByTitleAndArtist(
           title,
           artist,
           ctx.user.id,
@@ -769,7 +751,7 @@ export const albumRouter = router({
         }
 
         try {
-          await albumRepo.create({
+          await ctx.albums.insert({
             userId: ctx.user.id,
             title,
             artist,

@@ -32,4 +32,12 @@ export default tseslint.config(
       'prettier/prettier': ['error', { endOfLine: 'auto' }],
     },
   },
+  {
+    // Test files use lightweight async fakes that return constants, so the
+    // require-await rule is noise here.
+    files: ['**/*.spec.ts', '**/*.e2e-spec.ts'],
+    rules: {
+      '@typescript-eslint/require-await': 'off',
+    },
+  },
 )

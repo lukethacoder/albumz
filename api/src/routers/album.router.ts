@@ -1,415 +1,22 @@
 import { z } from 'zod'
 import { TRPCError } from '@trpc/server'
+import { eq } from 'drizzle-orm'
 import { router, protectedProcedure } from '../trpc/trpc'
 import {
   createAlbumSchema,
   updateAlbumSchema,
   albumFilterSchema,
 } from '../schemas/album.schema'
-import { AlbumModule } from '../repositories/album.repository'
-import { createJob, updateJob, getJob } from '../services/job-store'
-import {
-  fetchMetadata,
-  fetchLastFmAlbumInfo,
-  fetchCoverArtFromMbid,
-  fetchSpotifyPlaylistAlbums,
-  searchSpotifyArtwork,
-  parseUrl,
-} from '../services/url-import.service'
-import { eq } from 'drizzle-orm'
-import {
-  enrichFromMusicBrainz,
-  searchMusicBrainzArtwork,
-  fetchMusicBrainzGenresBySearch,
-} from '../services/musicbrainz.service'
-import {
-  fetchNavidromeAlbumUrl,
-  fetchNavidromeCoverArtUrl,
-} from '../services/navidrome.service'
-import { decrypt } from '../services/encryption.service'
+import { parseUrl } from '../services/url-import.service'
 import { userConfig } from '../db/schema/navidrome.schema'
 import { db } from '../db/database'
 import type { Database } from '../db/database'
+import { createImportPipeline } from '../import'
+import { isEnabled } from '../import/user-config'
 
-// Album module bound to the standalone db instance, for use by background
-// jobs that run outside a tRPC request context.
-const albumModule = new AlbumModule(db)
-
-function isEnabled(enabledServices: string[], key: string): boolean {
-  return enabledServices.length === 0 || enabledServices.includes(key)
-}
-
-function isNumericGenre(genre?: string): boolean {
-  if (!genre) return false
-  return /^\d+s?$/.test(genre.trim())
-}
-
-function toTitleCase(str: string): string {
-  return str.replace(/\b\w/g, (c) => c.toUpperCase())
-}
-
-async function runImportJob(
-  jobId: string,
-  url: string,
-  userId: string,
-): Promise<void> {
-  try {
-    updateJob(jobId, { status: 'processing', step: 'parsing' })
-
-    // Fetch user config once — used for enabled services and navidrome credentials
-    const [configRow] = await db
-      .select()
-      .from(userConfig)
-      .where(eq(userConfig.userId, userId))
-      .limit(1)
-    const enabled = configRow?.enabledExternalServices ?? []
-
-    updateJob(jobId, { step: 'fetching_metadata' })
-    const navidromeConfig =
-      configRow?.navidromeUrl && isEnabled(enabled, 'navidrome')
-        ? {
-            url: configRow.navidromeUrl,
-            username: configRow.navidromeUsername!,
-            password: decrypt(configRow.navidromePassword!),
-          }
-        : undefined
-    const metadata = await fetchMetadata(url, navidromeConfig)
-
-    // Don't use Spotify's genre metadata — it has poor tagging
-    const { kind } = parseUrl(url)
-    if (kind === 'spotify_album' || kind === 'spotify_track') {
-      metadata.genre = undefined
-    }
-
-    updateJob(jobId, { step: 'fetching_artwork' })
-    let lastFmCoverUrl: string | undefined
-    let lastFmInfo: Awaited<ReturnType<typeof fetchLastFmAlbumInfo>> | undefined
-    if (isEnabled(enabled, 'lastfm')) {
-      lastFmInfo = await fetchLastFmAlbumInfo(metadata.artist, metadata.title)
-      if (lastFmInfo?.mbid && !metadata.mbid) metadata.mbid = lastFmInfo.mbid
-      lastFmCoverUrl = lastFmInfo?.coverUrl
-    }
-    let caaCover: string | undefined
-    if (metadata.mbid) {
-      caaCover = await fetchCoverArtFromMbid(metadata.mbid)
-    }
-    // Priority: Spotify image (preferred) > LastFM > CAA > YouTube thumbnail (last resort)
-    if (kind === 'spotify_album' || kind === 'spotify_track') {
-      metadata.coverUrl = metadata.coverUrl ?? lastFmCoverUrl ?? caaCover
-    } else {
-      metadata.coverUrl = lastFmCoverUrl ?? caaCover ?? metadata.coverUrl
-    }
-
-    // Genre: additive merge from Navidrome, LastFM, MusicBrainz (in preference order)
-    // Genres are ';'-separated; duplicates are filtered case-insensitively
-    const genreSet = new Set(
-      (metadata.genre ?? '')
-        .split(';')
-        .map((g) => g.trim())
-        .filter(Boolean),
-    )
-    const addGenres = (raw: string | undefined) => {
-      if (!raw) return
-      raw
-        .split(';')
-        .map((g) => g.trim())
-        .filter(Boolean)
-        .forEach((g) => {
-          if (
-            !isNumericGenre(g) &&
-            ![...genreSet].some((e) => e.toLowerCase() === g.toLowerCase())
-          ) {
-            genreSet.add(toTitleCase(g))
-          }
-        })
-    }
-
-    let serviceContributed = false
-    if (navidromeConfig && isEnabled(enabled, 'navidrome')) {
-      const navResult = await fetchNavidromeAlbumUrl(
-        metadata.artist,
-        metadata.title,
-        navidromeConfig,
-      )
-      if (navResult?.genre) {
-        addGenres(navResult.genre)
-        serviceContributed = genreSet.size > 0
-      }
-    }
-    if (
-      !serviceContributed &&
-      isEnabled(enabled, 'lastfm') &&
-      lastFmInfo?.genre
-    ) {
-      addGenres(lastFmInfo.genre)
-      serviceContributed = genreSet.size > 0
-    }
-    if (!serviceContributed && isEnabled(enabled, 'musicbrainz')) {
-      addGenres(
-        await fetchMusicBrainzGenresBySearch(metadata.artist, metadata.title),
-      )
-    }
-
-    metadata.genre = genreSet.size > 0 ? [...genreSet].join(';') : undefined
-
-    updateJob(jobId, { step: 'saving' })
-    const album = await albumModule.create(metadata, userId)
-
-    updateJob(jobId, { step: 'fetching_links' })
-    const linkUpdates: Record<string, string> = {}
-
-    if (isEnabled(enabled, 'lastfm')) {
-      const lastFm = await fetchLastFmAlbumInfo(album.artist, album.title)
-      if (lastFm?.urlLastFm) linkUpdates.urlLastFm = lastFm.urlLastFm
-    }
-
-    if (album.mbid && isEnabled(enabled, 'musicbrainz')) {
-      const mb = await enrichFromMusicBrainz(album.mbid)
-      if (mb.urlSpotify && isEnabled(enabled, 'spotify'))
-        linkUpdates.urlSpotify = mb.urlSpotify
-      if (mb.urlAppleMusic && isEnabled(enabled, 'applemusic'))
-        linkUpdates.urlAppleMusic = mb.urlAppleMusic
-      if (mb.urlYoutube && isEnabled(enabled, 'youtube'))
-        linkUpdates.urlYoutube = mb.urlYoutube
-      if (mb.urlYoutubeMusic && isEnabled(enabled, 'youtube'))
-        linkUpdates.urlYoutubeMusic = mb.urlYoutubeMusic
-      if (mb.urlRateYourMusic && isEnabled(enabled, 'rateyourmusic'))
-        linkUpdates.urlRateYourMusic = mb.urlRateYourMusic
-    }
-
-    if (configRow?.navidromeUrl && isEnabled(enabled, 'navidrome')) {
-      const navResult = await fetchNavidromeAlbumUrl(
-        album.artist,
-        album.title,
-        {
-          url: configRow.navidromeUrl,
-          username: configRow.navidromeUsername!,
-          password: decrypt(configRow.navidromePassword!),
-        },
-      )
-      if (navResult) linkUpdates.urlNavidrome = navResult.relativeUrl
-    }
-
-    if (Object.keys(linkUpdates).length > 0) {
-      await albumModule.update(album.id, userId, linkUpdates)
-    }
-
-    updateJob(jobId, {
-      status: 'complete',
-      step: 'complete',
-      albumId: album.id,
-    })
-  } catch (err) {
-    const message =
-      err instanceof Error ? err.message : 'An unknown error occurred'
-    updateJob(jobId, { status: 'error', error: message })
-  }
-}
-
-async function runPlaylistImportJob(
-  jobId: string,
-  playlistId: string,
-  userId: string,
-): Promise<void> {
-  try {
-    updateJob(jobId, { status: 'processing', step: 'fetching_metadata' })
-
-    const [configRow] = await db
-      .select()
-      .from(userConfig)
-      .where(eq(userConfig.userId, userId))
-      .limit(1)
-    const enabled = configRow?.enabledExternalServices ?? []
-
-    const navidromeConfig =
-      configRow?.navidromeUrl && isEnabled(enabled, 'navidrome')
-        ? {
-            url: configRow.navidromeUrl,
-            username: configRow.navidromeUsername!,
-            password: decrypt(configRow.navidromePassword!),
-          }
-        : undefined
-
-    const albums = await fetchSpotifyPlaylistAlbums(playlistId)
-    if (albums.length === 0) {
-      updateJob(jobId, {
-        status: 'complete',
-        step: 'complete',
-        totalAlbums: 0,
-        processedAlbums: 0,
-      })
-      return
-    }
-
-    updateJob(jobId, {
-      totalAlbums: albums.length,
-      processedAlbums: 0,
-      step: 'saving',
-    })
-
-    const createdAlbumIds: string[] = []
-
-    for (let i = 0; i < albums.length; i++) {
-      const metadata = albums[i]
-
-      const genreSet = new Set(
-        (metadata.genre ?? '')
-          .split(';')
-          .map((g) => g.trim())
-          .filter(Boolean),
-      )
-      const addGenres = (raw: string | undefined) => {
-        if (!raw) return
-        raw
-          .split(';')
-          .map((g) => g.trim())
-          .filter(Boolean)
-          .forEach((g) => {
-            if (
-              !isNumericGenre(g) &&
-              ![...genreSet].some((e) => e.toLowerCase() === g.toLowerCase())
-            ) {
-              genreSet.add(toTitleCase(g))
-            }
-          })
-      }
-
-      if (navidromeConfig && isEnabled(enabled, 'navidrome')) {
-        const navResult = await fetchNavidromeAlbumUrl(
-          metadata.artist,
-          metadata.title,
-          navidromeConfig,
-        )
-        if (navResult?.genre) {
-          addGenres(navResult.genre)
-        }
-      }
-
-      if (genreSet.size === 0 && isEnabled(enabled, 'lastfm')) {
-        const lastFm = await fetchLastFmAlbumInfo(
-          metadata.artist,
-          metadata.title,
-        )
-        if (lastFm?.coverUrl) metadata.coverUrl = lastFm.coverUrl
-        if (lastFm?.mbid) metadata.mbid = lastFm.mbid
-        addGenres(lastFm?.genre)
-      }
-
-      if (genreSet.size === 0 && isEnabled(enabled, 'musicbrainz')) {
-        addGenres(
-          await fetchMusicBrainzGenresBySearch(metadata.artist, metadata.title),
-        )
-      }
-
-      if (genreSet.size > 0) metadata.genre = [...genreSet].join(';')
-
-      const created = await albumModule.insert({
-        userId,
-        title: metadata.title,
-        artist: metadata.artist,
-        releaseDate: metadata.releaseDate ?? null,
-        coverUrl: metadata.coverUrl ?? null,
-        mbid: metadata.mbid ?? null,
-        genre: metadata.genre ?? null,
-        ...(metadata.addedAt ? { createdAt: metadata.addedAt } : {}),
-      })
-      createdAlbumIds.push(created.id)
-
-      updateJob(jobId, { processedAlbums: i + 1 })
-    }
-
-    updateJob(jobId, { status: 'complete', step: 'complete' })
-
-    // Fire background enrichment for each created album — runs after job is marked complete
-    for (const albumId of createdAlbumIds) {
-      void enrichAlbum(albumId, userId)
-    }
-  } catch (err) {
-    const message =
-      err instanceof Error ? err.message : 'An unknown error occurred'
-    updateJob(jobId, { status: 'error', error: message })
-  }
-}
-
-/**
- * Best-effort metadata enrichment for a single album.
- * Silently skips steps that fail or lack an MBID — safe to fire-and-forget.
- */
-async function enrichAlbum(
-  albumId: string,
-  userId: string,
-  skipArtwork = false,
-): Promise<void> {
-  try {
-    const album = await albumModule.findById(albumId, userId)
-
-    const [configRow] = await db
-      .select()
-      .from(userConfig)
-      .where(eq(userConfig.userId, userId))
-      .limit(1)
-    const enabled = configRow?.enabledExternalServices ?? []
-
-    const updates: Record<string, unknown> = {}
-    let mbid = album.mbid
-
-    // Try Navidrome — resolves MBID and URL in one call
-    if (configRow?.navidromeUrl && isEnabled(enabled, 'navidrome')) {
-      const navResult = await fetchNavidromeAlbumUrl(
-        album.artist,
-        album.title,
-        {
-          url: configRow.navidromeUrl,
-          username: configRow.navidromeUsername!,
-          password: decrypt(configRow.navidromePassword!),
-        },
-      )
-      if (navResult) {
-        if (navResult.mbid && !mbid) {
-          mbid = navResult.mbid
-          updates.mbid = mbid
-        }
-        updates.urlNavidrome = navResult.relativeUrl
-      }
-    }
-
-    if (!mbid) return // No MBID — nothing more to do
-
-    let lastFmCoverUrl: string | undefined
-    if (isEnabled(enabled, 'lastfm')) {
-      const lastFm = await fetchLastFmAlbumInfo(album.artist, album.title)
-      if (lastFm?.urlLastFm) updates.urlLastFm = lastFm.urlLastFm
-      lastFmCoverUrl = lastFm?.coverUrl
-    }
-
-    if (isEnabled(enabled, 'musicbrainz')) {
-      if (!skipArtwork) {
-        const caaCover = await fetchCoverArtFromMbid(mbid)
-        // LastFM preferred over CAA
-        const newCover = lastFmCoverUrl ?? caaCover
-        if (newCover) updates.coverUrl = newCover
-      }
-
-      const mb = await enrichFromMusicBrainz(mbid)
-      if (mb.urlSpotify && isEnabled(enabled, 'spotify'))
-        updates.urlSpotify = mb.urlSpotify
-      if (mb.urlAppleMusic && isEnabled(enabled, 'applemusic'))
-        updates.urlAppleMusic = mb.urlAppleMusic
-      if (mb.urlYoutube && isEnabled(enabled, 'youtube'))
-        updates.urlYoutube = mb.urlYoutube
-      if (mb.urlYoutubeMusic && isEnabled(enabled, 'youtube'))
-        updates.urlYoutubeMusic = mb.urlYoutubeMusic
-      if (mb.urlRateYourMusic && isEnabled(enabled, 'rateyourmusic'))
-        updates.urlRateYourMusic = mb.urlRateYourMusic
-    }
-
-    if (Object.keys(updates).length > 0) {
-      await albumModule.update(albumId, userId, updates)
-    }
-  } catch {
-    // Background enrichment — swallow errors silently
-  }
-}
+// Import pipeline bound to the standalone db instance, for background jobs that
+// run outside a tRPC request context.
+const importPipeline = createImportPipeline(db)
 
 async function getNavidromeBaseUrl(
   db: Database,
@@ -496,36 +103,15 @@ export const albumRouter = router({
         })
       }
 
-      const jobId = createJob()
       if (kind === 'spotify_playlist') {
-        void runPlaylistImportJob(jobId, id, ctx.user.id)
-      } else {
-        void runImportJob(jobId, input.url, ctx.user.id)
+        return importPipeline.importPlaylist(id, ctx.user.id)
       }
-      return { jobId }
+      return importPipeline.importFromUrl(input.url, ctx.user.id)
     }),
 
   getImportStatus: protectedProcedure
     .input(z.object({ jobId: z.string() }))
-    .query(({ input }) => {
-      const job = getJob(input.jobId)
-      if (!job) {
-        return {
-          status: 'error' as const,
-          step: null,
-          albumId: null,
-          error: 'Job not found',
-        }
-      }
-      return {
-        status: job.status,
-        step: job.step,
-        albumId: job.albumId,
-        error: job.error,
-        totalAlbums: job.totalAlbums,
-        processedAlbums: job.processedAlbums,
-      }
-    }),
+    .query(({ input }) => importPipeline.status(input.jobId)),
 
   update: protectedProcedure
     .input(z.object({ id: z.string().uuid(), data: updateAlbumSchema }))
@@ -565,7 +151,7 @@ export const albumRouter = router({
         }
       }
 
-      await enrichAlbum(input.id, ctx.user.id, true)
+      await importPipeline.enrichAlbum(input.id, ctx.user.id, true)
       return ctx.albums.findById(input.id, ctx.user.id)
     }),
 
@@ -579,59 +165,9 @@ export const albumRouter = router({
 
   findArtwork: protectedProcedure
     .input(z.object({ artist: z.string().min(1), album: z.string().min(1) }))
-    .mutation(async ({ input, ctx }) => {
-      const results: Array<{ url: string; source: string }> = []
-
-      const [configRow] = await ctx.db
-        .select()
-        .from(userConfig)
-        .where(eq(userConfig.userId, ctx.user.id))
-        .limit(1)
-      const enabled = configRow?.enabledExternalServices ?? []
-
-      // 1. Spotify (preferred — highest quality)
-      if (
-        isEnabled(enabled, 'spotify') &&
-        process.env.SPOTIFY_CLIENT_ID &&
-        process.env.SPOTIFY_CLIENT_SECRET
-      ) {
-        const urls = await searchSpotifyArtwork(input.artist, input.album)
-        for (const url of urls) results.push({ url, source: 'spotify' })
-      }
-
-      // 2. LastFM
-      if (isEnabled(enabled, 'lastfm') && process.env.LASTFM_API_KEY) {
-        const info = await fetchLastFmAlbumInfo(input.artist, input.album)
-        if (info?.coverUrl)
-          results.push({ url: info.coverUrl, source: 'lastfm' })
-      }
-
-      // 3. Navidrome (if configured)
-      if (
-        isEnabled(enabled, 'navidrome') &&
-        configRow?.navidromeUrl &&
-        configRow?.navidromePassword
-      ) {
-        const coverUrl = await fetchNavidromeCoverArtUrl(
-          input.artist,
-          input.album,
-          {
-            url: configRow.navidromeUrl,
-            username: configRow.navidromeUsername!,
-            password: decrypt(configRow.navidromePassword),
-          },
-        )
-        if (coverUrl) results.push({ url: coverUrl, source: 'navidrome' })
-      }
-
-      // 4. MusicBrainz / Cover Art Archive (fallback)
-      if (isEnabled(enabled, 'musicbrainz')) {
-        const urls = await searchMusicBrainzArtwork(input.artist, input.album)
-        for (const url of urls) results.push({ url, source: 'musicbrainz' })
-      }
-
-      return results
-    }),
+    .mutation(({ input, ctx }) =>
+      importPipeline.findArtwork(input.artist, input.album, ctx.user.id),
+    ),
 
   exportCsv: protectedProcedure.query(async ({ ctx }) => {
     const rows = await ctx.albums.findAll(ctx.user.id, {

@@ -1,25 +1,43 @@
 import { z } from 'zod'
+import { createInsertSchema } from 'drizzle-zod'
+import { albums } from '../db/schema/album.schema'
+import { derivedString } from './drizzle-derive'
 
-// Zod schema for creating an album
+// The Drizzle `albums` table is the single source of truth for column
+// constraints. `createInsertSchema` derives the base Zod shapes — crucially the
+// `varchar` lengths (title/artist 255, coverUrl 500) — so those constraints
+// live in exactly one place. We then layer on only the refinements the database
+// can't express (non-empty, url, uuid, date coercion, rating bounds).
+const table = createInsertSchema(albums)
+
+// title/artist: drizzle length + non-empty. coverUrl: drizzle length + url.
+const title = derivedString(table.shape.title).min(1)
+const artist = derivedString(table.shape.artist).min(1)
+const coverUrl = derivedString(table.shape.coverUrl).url()
+// mbid/releaseDate are `text`/`date` (no length constraint) — pure refinements.
+const mbid = z.string().uuid()
+const releaseDate = z.string().datetime().or(z.string().date())
+
+// Zod schema for creating an album.
 export const createAlbumSchema = z.object({
-  title: z.string().min(1).max(255),
-  artist: z.string().min(1).max(255),
+  title,
+  artist,
   genre: z.string().optional(),
-  releaseDate: z.string().datetime().or(z.string().date()).optional(),
+  releaseDate: releaseDate.optional(),
   description: z.string().optional(),
-  coverUrl: z.string().url().max(500).optional(),
-  mbid: z.string().uuid().optional(),
+  coverUrl: coverUrl.optional(),
+  mbid: mbid.optional(),
 })
 
-// Zod schema for updating an album (all fields optional)
+// Zod schema for updating an album (all fields optional).
 export const updateAlbumSchema = z.object({
-  title: z.string().min(1).max(255).optional(),
-  artist: z.string().min(1).max(255).optional(),
+  title: title.optional(),
+  artist: artist.optional(),
   genre: z.string().optional(),
-  releaseDate: z.string().datetime().or(z.string().date()).optional(),
+  releaseDate: releaseDate.optional(),
   description: z.string().optional(),
-  coverUrl: z.string().url().max(500).optional(),
-  mbid: z.string().uuid().optional(),
+  coverUrl: coverUrl.optional(),
+  mbid: mbid.optional(),
   urlLastFm: z.string().url().optional(),
   urlSpotify: z.string().url().optional(),
   urlAppleMusic: z.string().url().optional(),
@@ -31,7 +49,7 @@ export const updateAlbumSchema = z.object({
   rating: z.number().min(0).max(5).multipleOf(0.5).nullable().optional(),
 })
 
-// Zod schema for filtering and sorting albums
+// Zod schema for filtering and sorting albums — not table-shaped, hand-written.
 export const albumFilterSchema = z.object({
   artist: z.string().optional(),
   search: z.string().optional(),

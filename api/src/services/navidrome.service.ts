@@ -93,7 +93,10 @@ export async function fetchNavidromeCoverArtUrl(
   const albumIdMatch = result.relativeUrl.match(/\/album\/([^/]+)\/show/)
   if (!albumIdMatch?.[1]) return undefined
 
-  const params = buildSubsonicParams(config, { id: albumIdMatch[1], size: '600' })
+  const params = buildSubsonicParams(config, {
+    id: albumIdMatch[1],
+    size: '600',
+  })
   return `${config.url}/rest/getCoverArt.view?${params}`
 }
 

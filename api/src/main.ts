@@ -40,18 +40,20 @@ async function main() {
   })
 
   // Health check endpoint
-  server.get('/health', async () => {
+  server.get('/health', () => {
     return { status: 'ok', timestamp: new Date().toISOString() }
   })
 
   // Graceful shutdown
   const signals = ['SIGINT', 'SIGTERM']
   signals.forEach((signal) => {
-    process.on(signal, async () => {
-      console.log(`Received ${signal}, shutting down gracefully...`)
-      await server.close()
-      await pgPool.end()
-      process.exit(0)
+    process.on(signal, () => {
+      void (async () => {
+        console.log(`Received ${signal}, shutting down gracefully...`)
+        await server.close()
+        await pgPool.end()
+        process.exit(0)
+      })()
     })
   })
 
@@ -69,4 +71,4 @@ async function main() {
   }
 }
 
-main()
+void main()

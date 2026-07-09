@@ -138,9 +138,12 @@ async function fetchSpotifyTrack(trackId: string): Promise<AlbumMetadata> {
   // Fetch the full album to get genres (track response has a simplified album object)
   let genre: string | undefined
   try {
-    const albumRes = await fetch(`https://api.spotify.com/v1/albums/${data.album.id}`, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
+    const albumRes = await fetch(
+      `https://api.spotify.com/v1/albums/${data.album.id}`,
+      {
+        headers: { Authorization: `Bearer ${token}` },
+      },
+    )
     if (albumRes.ok) {
       const albumData = (await albumRes.json()) as { genres: string[] }
       if (albumData.genres?.length) genre = albumData.genres.join(';')
@@ -244,7 +247,7 @@ async function fetchAppleMusicAlbum(albumId: string): Promise<AlbumMetadata> {
 
 // Bracketed/parenthesized tags commonly added by YouTube uploaders that aren't part of the title
 const YOUTUBE_NOISE_RE =
-  /\s*[\[(]\s*(?:official(?:\s+(?:music\s+)?(?:video|audio|lyric\s+video|visualizer))?|lyric\s+video|lyrics|audio|visualizer|music\s+video|video|hd|hq|4k|1080p|720p|full\s+(?:album|video))\s*[\])]/gi
+  /\s*[[(]\s*(?:official(?:\s+(?:music\s+)?(?:video|audio|lyric\s+video|visualizer))?|lyric\s+video|lyrics|audio|visualizer|music\s+video|video|hd|hq|4k|1080p|720p|full\s+(?:album|video))\s*[\])]/gi
 
 function cleanYouTubeTitle(title: string): string {
   return title.replace(YOUTUBE_NOISE_RE, '').trim()
@@ -451,7 +454,8 @@ export async function fetchLastFmAlbumInfo(
   artist: string,
   album: string,
 ): Promise<
-  { coverUrl?: string; mbid?: string; urlLastFm?: string; genre?: string } | undefined
+  | { coverUrl?: string; mbid?: string; urlLastFm?: string; genre?: string }
+  | undefined
 > {
   const apiKey = process.env.LASTFM_API_KEY
   if (!apiKey) return undefined
@@ -485,7 +489,10 @@ export async function fetchLastFmAlbumInfo(
 
       const tags = data.album.tags?.tag ?? []
       const genre = tags.length
-        ? tags.slice(0, 5).map((t) => t.name).join(';')
+        ? tags
+            .slice(0, 5)
+            .map((t) => t.name)
+            .join(';')
         : undefined
 
       return {
@@ -527,9 +534,12 @@ export async function searchSpotifyGenres(
     const albumId = searchData.albums?.items?.[0]?.id
     if (!albumId) return undefined
 
-    const albumRes = await fetch(`https://api.spotify.com/v1/albums/${albumId}`, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
+    const albumRes = await fetch(
+      `https://api.spotify.com/v1/albums/${albumId}`,
+      {
+        headers: { Authorization: `Bearer ${token}` },
+      },
+    )
     if (!albumRes.ok) return undefined
     const albumData = (await albumRes.json()) as { genres: string[] }
     return albumData.genres?.length ? albumData.genres.join(';') : undefined

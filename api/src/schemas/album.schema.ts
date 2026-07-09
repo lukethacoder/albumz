@@ -38,7 +38,10 @@ export const albumFilterSchema = z.object({
   minYear: z.number().int().min(1900).max(2100).optional(),
   maxYear: z.number().int().min(1900).max(2100).optional(),
   genres: z.array(z.string()).optional(),
-  completionFilter: z.enum(['all', 'backlog', 'listened']).optional().default('backlog'),
+  completionFilter: z
+    .enum(['all', 'backlog', 'listened'])
+    .optional()
+    .default('backlog'),
   sortBy: z
     .enum([
       'dateAddedDesc',

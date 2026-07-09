@@ -590,14 +590,23 @@ async function seedAlbums(db: DbType, userId: string) {
   const albums = await db
     .insert(schema.albums)
     .values(
-      ALBUMS_MOCK_DATA.map(({ id: _id, createdAt, updatedAt, dateCompleted, rating, ...item }) => ({
-        ...item,
-        userId,
-        rating: rating ? Number(rating) : undefined,
-        dateCompleted: dateCompleted ? new Date(dateCompleted) : undefined,
-        createdAt: createdAt ? new Date(createdAt) : undefined,
-        updatedAt: updatedAt ? new Date(updatedAt) : undefined,
-      })),
+      ALBUMS_MOCK_DATA.map(
+        ({
+          id: _id,
+          createdAt,
+          updatedAt,
+          dateCompleted,
+          rating,
+          ...item
+        }) => ({
+          ...item,
+          userId,
+          rating: rating ? Number(rating) : undefined,
+          dateCompleted: dateCompleted ? new Date(dateCompleted) : undefined,
+          createdAt: createdAt ? new Date(createdAt) : undefined,
+          updatedAt: updatedAt ? new Date(updatedAt) : undefined,
+        }),
+      ),
     )
     .returning()
 

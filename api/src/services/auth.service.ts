@@ -4,11 +4,17 @@ import { PasswordService } from './password.service'
 import type { RegisterInput, AuthResponse } from '../schemas/auth.schema'
 import type { User } from '../db/schema'
 
+/** Claims embedded in the signed JWT. */
+export interface JwtPayload {
+  sub: string
+  email: string
+}
+
 export class AuthService {
   constructor(
     private readonly userRepository: UserRepository,
     private readonly passwordService: PasswordService,
-    private readonly jwtSign: (payload: any) => string,
+    private readonly jwtSign: (payload: JwtPayload) => string,
   ) {}
 
   async register(registerDto: RegisterInput): Promise<AuthResponse> {
@@ -70,8 +76,8 @@ export class AuthService {
     return user
   }
 
-  async login(user: User): Promise<AuthResponse> {
-    return this.generateAuthResponse(user)
+  login(user: User): Promise<AuthResponse> {
+    return Promise.resolve(this.generateAuthResponse(user))
   }
 
   async getUserById(id: string): Promise<User> {

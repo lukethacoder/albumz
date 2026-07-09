@@ -42,7 +42,8 @@
       const total = importStore.totalAlbums ?? 0
       const done = importStore.processedAlbums ?? 0
       if (importStore.step === 'fetching_metadata') return 'Fetching playlist...'
-      if (importStore.step === 'complete') return `${total} ${total === 1 ? 'album' : 'albums'} added!`
+      if (importStore.step === 'complete')
+        return `${total} ${total === 1 ? 'album' : 'albums'} added!`
       return `Adding albums... ${done} / ${total}`
     }
     return STEP_LABELS[importStore.step ?? 'pending'] ?? 'Working...'

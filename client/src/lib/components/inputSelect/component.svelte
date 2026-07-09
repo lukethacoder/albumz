@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { mergeProps, Select, Label, useId, type WithoutChildren } from 'bits-ui'
+  import { mergeProps, Select, Label, useId } from 'bits-ui'
   import { cn } from '$lib/utils'
   import type { RootProps } from './types'
 
@@ -52,7 +52,7 @@ from the perspective of the consumer of this component, it will be typed appropr
   </Label.Root>
 {/if}
 
-<Select.Root bind:value={value as never} type={selectType as any} {...restProps}>
+<Select.Root bind:value={value as never} type={selectType as never} {...restProps}>
   <Select.Trigger
     {id}
     class={cn(

@@ -18,7 +18,7 @@ export type WithChild<
   /**
    * The props that the component accepts.
    */
-  Props extends Record<PropertyKey, unknown> = {},
+  Props extends Record<PropertyKey, unknown> = Record<never, never>,
   /**
    * The props that are passed to the `child` and `children` snippets. The `ElementProps` are
    * merged with these props for the `child` snippet.
@@ -42,7 +42,7 @@ export type WithChildNoChildrenSnippetProps<
   /**
    * The props that the component accepts.
    */
-  Props extends Record<PropertyKey, unknown> = {},
+  Props extends Record<PropertyKey, unknown> = Record<never, never>,
   /**
    * The props that are passed to the `child` and `children` snippets. The `ElementProps` are
    * merged with these props for the `child` snippet.
@@ -62,7 +62,7 @@ export type WithChildNoChildrenSnippetProps<
   ref?: Ref | null | undefined
 }
 
-export type WithChildren<Props = {}> = Props & {
+export type WithChildren<Props = Record<never, never>> = Props & {
   children?: Snippet | undefined
 }
 

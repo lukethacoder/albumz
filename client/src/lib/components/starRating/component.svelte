@@ -76,7 +76,9 @@
       onmousemove={(e) => handleMouseMove(e, star)}
       onclick={(e) => handleClick(e, star)}
       aria-label="{star} star{star !== 1 ? 's' : ''}"
-      class="text-amber-400 transition-colors {readonly ? 'cursor-default' : 'cursor-pointer hover:text-amber-300'} disabled:pointer-events-none"
+      class="text-amber-400 transition-colors {readonly
+        ? 'cursor-default'
+        : 'cursor-pointer hover:text-amber-300'} disabled:pointer-events-none"
     >
       <svg class={starSize} viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
         <defs>

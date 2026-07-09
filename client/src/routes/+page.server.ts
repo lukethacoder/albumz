@@ -23,7 +23,7 @@ export const load: PageServerLoad = async ({ cookies, url }) => {
 
     const { availableYears, availableGenres } = deriveFilterOptions(allAlbums)
 
-    const viewMode = cookies.get('viewMode') === 'table' ? 'table' : ('grid' as const)
+    const viewMode: 'grid' | 'table' = cookies.get('viewMode') === 'table' ? 'table' : 'grid'
 
     return { albums, availableYears, availableGenres, viewMode }
   } catch (error) {

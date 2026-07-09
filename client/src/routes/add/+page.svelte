@@ -23,11 +23,7 @@
   const urlImportEnabled = $derived(spotifyEnabled || appleMusicEnabled || youtubeEnabled)
 
   const urlLabel = $derived(
-    [
-      spotifyEnabled && 'Spotify',
-      appleMusicEnabled && 'Apple Music',
-      youtubeEnabled && 'YouTube',
-    ]
+    [spotifyEnabled && 'Spotify', appleMusicEnabled && 'Apple Music', youtubeEnabled && 'YouTube']
       .filter(Boolean)
       .join(' or ') + ' URL',
   )

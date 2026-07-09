@@ -37,8 +37,9 @@
 </svelte:head>
 
 <nav class="flex items-center justify-between p-3">
-  <a href="/" class="font-funnel text-xl font-bold uppercase hover:underline dark:text-emerald-400"
-    >albumz</a
+  <a
+    href={resolve('/')}
+    class="font-funnel text-xl font-bold uppercase hover:underline dark:text-emerald-400">albumz</a
   >
 
   <div class="flex items-center gap-2">
@@ -78,6 +79,7 @@
 
 <div style="display:none">
   {#each locales as locale (locale)}
+    <!-- eslint-disable-next-line svelte/no-navigation-without-resolve -->
     <a href={localizeHref(page.url.pathname, { locale })} class="dark:text-white">{locale}</a>
   {/each}
 </div>
